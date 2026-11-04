@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Threshold Spaces Arena Survey - Live Matrix & Exporter</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase CDN Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- SheetJS (xlsx) for true Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+    :root {
+      --excel-header-bg: #09090b;
+      --excel-header-text: #ffffff;
+      --excel-border: #cbd5e1;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .font-mono-numbers {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    /* Spreadsheet Table Styling */
+    .sheet-table-wrapper {
+      position: relative;
+      overflow-x: auto;
+      overflow-y: auto;
+      height: calc(100vh - 220px);
+      min-height: 500px;
+      border: 1px solid #94a3b8;
+      background: #ffffff;
+    }
+
+    .sheet-table {
+      border-collapse: separate; /* Fixes sticky header border bleeding */
+      border-spacing: 0;
+      white-space: nowrap;
+      font-size: 13px;
+      line-height: 1.45;
+      width: max-content;
+    }
+
+    .sheet-table th,
+    .sheet-table td {
+      border-right: 1px solid #cbd5e1;
+      border-bottom: 1px solid #cbd5e1;
+      padding: 8px 12px;
+      vertical-align: middle;
+    }
+
+    /* Sticky Headers (Vertical Scroll Only) */
+    .sheet-table thead th {
+      color: var(--excel-header-text);
+      font-weight: 700;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      position: sticky;
+      z-index: 20;
+    }
+
+    /* Row 1 sticky top */
+    .sheet-table thead tr:first-child th {
+      top: 0;
+      z-index: 25;
+      height: 40px;
+      border-bottom: 2px solid #334155;
+    }
+    
+    /* Row 2 sticky top directly below row 1 */
+    .sheet-table thead tr:nth-child(2) th {
+      top: 40px;
+      z-index: 24;
+      height: 36px;
+      border-bottom: 2px solid #0f172a;
+    }
+
+    /* Sticky columns (Horizontal Freeze for Column 1 & 2) */
+    .sticky-col-1 {
+      position: sticky !important;
+      left: 0 !important;
+      z-index: 10 !important;
+      min-width: 160px;
+    }
+
+    .sticky-col-2 {
+      position: sticky !important;
+      left: 160px !important;
+      z-index: 10 !important;
+      min-width: 220px;
+    }
+
+    /* Intersecting Sticky Cells (Headers in Sticky Columns) */
+    .sheet-table thead tr:first-child th.sticky-col-1,
+    .sheet-table thead tr:first-child th.sticky-col-2 {
+      z-index: 35 !important;
+    }
+
+    .sheet-table thead tr:nth-child(2) th.sticky-col-1,
+    .sheet-table thead tr:nth-child(2) th.sticky-col-2 {
+      z-index: 34 !important;
+    }
+
+    .sticky-col-3,
+    .sticky-col-4 {
+      position: static !important;
+      left: auto !important;
+      z-index: auto !important;
+    }
+
+    /* Master Rows */
+    tr.user-main-row td,
+    tr.group-master-row td {
+      background-color: #fef08a !important;
+      color: #713f12;
+      font-weight: 700;
+      border-top: 1px solid #ca8a04;
+      border-bottom: 1px solid #ca8a04;
+    }
+
+    tr.space-sub-row:hover td {
+      background-color: #f8fafc;
+    }
+
+    tr.summary-sub-row td {
+      background-color: #f1f5f9;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    /* Section Category Color Bars */
+    .th-cat-id { background: #0f172a; }
+    .th-cat-ext-p2 { background: #0369a1; }
+    .th-cat-ext-p3 { background: #0284c7; }
+    .th-cat-ext-p4 { background: #075985; }
+    .th-cat-int-p2 { background: #6b21a8; }
+    .th-cat-int-p3 { background: #7e22ce; }
+    .th-cat-int-p4 { background: #581c87; }
+    .th-cat-gen { background: #991b1b; }
+
+    .rating-val {
+      text-align: center;
+      font-weight: 600;
+    }
+
+    /* Custom Scrollbars */
+    .sheet-table-wrapper::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    .sheet-table-wrapper::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 4px;
+    }
+    .sheet-table-wrapper::-webkit-scrollbar-track {
+      background: #e2e8f0;
+    }
+  </style>
+</head>
+<body class="p-3 md:p-6 min-h-screen flex flex-col">
+
+  <!-- TOP HEADER / NAV -->
+  <header class="flex flex-col md:flex-row md:items-center justify-between pb-4 gap-4 border-b border-slate-300">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center justify-center bg-indigo-600 text-white rounded-md w-8 h-8">
+          <i class="ph ph-table text-xl"></i>
+        </span>
+        <h1 class="text-xl md:text-2xl font-bold tracking-tight text-slate-900">
+          Threshold Spaces Arena Assessment
+        </h1>
+        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+          Live Database Connected
+        </span>
+      </div>
+      <p class="text-xs md:text-sm text-slate-500 mt-0.5">
+        Group by Survey ID, Space, or Ticket Tier &middot; [EXTERIOR P2 &rarr; P3 &rarr; P4] &middot; [INTERIOR P2 &rarr; P3 &rarr; P4] &middot; [General Sec 3]
+      </p>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <button id="refreshBtn" onclick="fetchSurveyData()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 active:scale-95 transition shadow-sm">
+        <i class="ph ph-arrows-clockwise text-base" id="refreshIcon"></i>
+        <span>Refresh Data</span>
+      </button>
+
+      <button id="toggleHeadersBtn" onclick="toggleHeaderMode()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition shadow-sm">
+        <i class="ph ph-text-t"></i>
+        <span id="headerModeLabel">Show Question Text</span>
+      </button>
+
+      <button id="exportXlsxBtn" onclick="exportToXLSX()" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 active:scale-95 transition shadow-sm">
+        <i class="ph ph-file-xls text-base"></i>
+        <span>Export Excel (.xlsx)</span>
+      </button>
+
+      <button id="exportCsvBtn" onclick="exportToCSV()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition shadow-sm">
+        <i class="ph ph-download-simple text-base"></i>
+        <span>CSV</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- SUMMARY METRICS -->
+  <section class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 my-4">
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div>
+        <p class="text-xs font-medium text-slate-500">Total Participants</p>
+        <h3 id="statTotalUsers" class="text-xl font-bold text-slate-900 font-mono-numbers">0</h3>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
+        <i class="ph ph-users"></i>
+      </div>
+    </div>
+
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div>
+        <p class="text-xs font-medium text-slate-500">Exterior Spaces Evaluated</p>
+        <h3 id="statExtSpaces" class="text-xl font-bold text-sky-600 font-mono-numbers">0</h3>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-xl">
+        <i class="ph ph-sun"></i>
+      </div>
+    </div>
+
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div>
+        <p class="text-xs font-medium text-slate-500">Interior Spaces Evaluated</p>
+        <h3 id="statIntSpaces" class="text-xl font-bold text-purple-600 font-mono-numbers">0</h3>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+        <i class="ph ph-buildings"></i>
+      </div>
+    </div>
+
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div>
+        <p class="text-xs font-medium text-slate-500">Completed Surveys</p>
+        <h3 id="statCompleted" class="text-xl font-bold text-emerald-600 font-mono-numbers">0</h3>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+        <i class="ph ph-check-circle"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEARCH & FILTER BAR -->
+  <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm mb-3 flex flex-wrap items-center gap-3 justify-between">
+    <div class="flex items-center gap-2 flex-1 min-w-[240px] flex-wrap">
+      <!-- Search Input -->
+      <div class="relative min-w-[210px] flex-1 max-w-xs">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+          <i class="ph ph-magnifying-glass"></i>
+        </span>
+        <input 
+          type="text" 
+          id="searchFilter" 
+          placeholder="Search name, email, city, or ID..." 
+          class="w-full pl-9 pr-3 py-1.5 text-xs rounded-md border border-slate-300 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          oninput="renderSheet()"
+        />
+      </div>
+
+      <!-- Group By Selector -->
+      <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-md border border-slate-300">
+        <span class="text-[11px] font-bold text-slate-600 uppercase px-1.5">Group By:</span>
+        <select id="groupByMode" onchange="renderSheet()" class="py-1 px-2 text-xs font-semibold border-none bg-white rounded text-slate-800 shadow-xs focus:outline-none cursor-pointer">
+          <option value="survey_id">Survey ID (Respondent Default)</option>
+          <option value="threshold_space">Threshold Space</option>
+          <option value="ticket_tier">Ticket Tier</option>
+        </select>
+      </div>
+
+      <!-- Filter by Ticket Tier -->
+      <select id="ticketTierFilter" onchange="renderSheet()" class="py-1.5 px-2.5 text-xs border border-slate-300 rounded-md bg-white text-slate-700 focus:outline-none focus:border-indigo-500">
+        <option value="all">All Ticket Tiers</option>
+        <option value="VIP Standing (including PIT A/B)">VIP Standing (PIT A/B)</option>
+        <option value="VIP Seated">VIP Seated</option>
+        <option value="Lower Box (Premium and Regular)">Lower Box</option>
+        <option value="Upper Box">Upper Box</option>
+      </select>
+
+      <!-- Filter by Specific Space -->
+      <select id="specificSpaceFilter" onchange="renderSheet()" class="py-1.5 px-2.5 text-xs border border-slate-300 rounded-md bg-white text-slate-700 focus:outline-none focus:border-indigo-500 max-w-[190px]">
+        <option value="all">All Threshold Spaces</option>
+        <optgroup label="Exterior Spaces">
+          <option value="ext_coral_blue">Coral Way Blue Entrance</option>
+          <option value="ext_stairs">Stairs (Exterior)</option>
+          <option value="ext_marina_green">Marina Way - Green</option>
+          <option value="ext_plaza">Open Plaza</option>
+          <option value="ext_queue_platinum_vip">Queue Platinum/VIP</option>
+          <option value="ext_queue_vip_sro">Queue VIP SRO</option>
+          <option value="ext_shaded">Shaded Area</option>
+        </optgroup>
+        <optgroup label="Interior Spaces">
+          <option value="int_coral_lobby">Coral Main Lobby</option>
+          <option value="int_food">Food Stalls</option>
+          <option value="int_ga_hallway">GA Hallway</option>
+          <option value="int_lowerbox_hallway">Lower Box Hallway</option>
+          <option value="int_marina_lobby">Marina Main Lobby</option>
+          <option value="int_stairs">Stairs (Interior)</option>
+          <option value="int_upperbox_hallway">Upper Box Hallway</option>
+        </optgroup>
+      </select>
+
+      <!-- Filter by Set (Ext / Int) -->
+      <select id="spaceTypeFilter" onchange="renderSheet()" class="py-1.5 px-2 text-xs border border-slate-300 rounded-md bg-white text-slate-700 focus:outline-none focus:border-indigo-500">
+        <option value="all">Exterior & Interior Sets</option>
+        <option value="ext">Exterior Only</option>
+        <option value="int">Interior Only</option>
+      </select>
+    </div>
+
+    <div class="flex items-center gap-3 text-xs text-slate-500">
+      <div class="flex items-center gap-1.5">
+        <span class="w-3.5 h-3.5 bg-[#fef08a] border border-[#ca8a04] inline-block rounded-xs"></span>
+        <span>Group Master Row</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-3.5 h-3.5 bg-white border border-slate-400 inline-block rounded-xs"></span>
+        <span>Space Detail Sub-Row</span>
+      </div>
+      <span id="filteredCountLabel" class="font-semibold text-slate-700">Loading records...</span>
+    </div>
+  </div>
+
+  <!-- MAIN SPREADSHEET TABLE CONTAINER -->
+  <div class="sheet-table-wrapper rounded-lg shadow-inner flex-1">
+    <table class="sheet-table" id="matrixTable">
+      <thead id="sheetThead">
+        <!-- Rendered dynamically -->
+      </thead>
+      <tbody id="sheetTbody">
+        <tr>
+          <td colspan="98" class="text-center py-16 text-slate-500 font-medium">
+            <div class="flex flex-col items-center justify-center gap-2">
+              <i class="ph ph-circle-notch animate-spin text-2xl text-indigo-600"></i>
+              <span>Connecting to Supabase and building matrix...</span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="toast" class="fixed bottom-5 right-5 px-4 py-2.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-xl translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 z-50">
+    <i class="ph ph-info text-base text-emerald-400"></i>
+    <span id="toastMsg">Notification message</span>
+  </div>
+
+  <script>
+    // 1. SUPABASE CLIENT
+    const SUPABASE_URL = "https://ysyhlmzkuaxkgzzqmudq.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_ADLq-fJz_zsxAF4QAoWNog_OrHnnbUV";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 2. SPACE DICTIONARY
+    const SPACE_META = {
+      ext_coral_blue: { label: "Coral Way Blue Entrance", type: "EXTERIOR" },
+      ext_stairs: { label: "Stairs (Exterior)", type: "EXTERIOR" },
+      ext_marina_green: { label: "Marina Way - Green Entrance", type: "EXTERIOR" },
+      ext_plaza: { label: "Open Plaza", type: "EXTERIOR" },
+      ext_queue_platinum_vip: { label: "Queuing - Platinum and VIP", type: "EXTERIOR" },
+      ext_queue_vip_sro: { label: "Queuing - VIP SRO", type: "EXTERIOR" },
+      ext_shaded: { label: "Shaded Area", type: "EXTERIOR" },
+      int_coral_lobby: { label: "Coral Main Lobby", type: "INTERIOR" },
+      int_food: { label: "Food Stalls", type: "INTERIOR" },
+      int_ga_hallway: { label: "General Admission Hallway", type: "INTERIOR" },
+      int_lowerbox_hallway: { label: "Lower Box Hallway", type: "INTERIOR" },
+      int_marina_lobby: { label: "Marina Main Lobby", type: "INTERIOR" },
+      int_stairs: { label: "Stairs (Interior)", type: "INTERIOR" },
+      int_upperbox_hallway: { label: "Upper Box Hallway", type: "INTERIOR" }
+    };
+
+    // 3. COMPLETE QUESTION SCHEMA
+    const EXT_P2_QUESTIONS = [
+      { id: "q1", full: "1. Entrances and exits were easy to find", short: "Q1 Entrances Easy" },
+      { id: "q2", full: "2. Pathways allowed smooth movement", short: "Q2 Pathways Smooth" },
+      { id: "q3", full: "3. The layout was easy to navigate", short: "Q3 Layout Easy" },
+      { id: "q4", full: "4. The space handled large crowds well", short: "Q4 Crowds Handled" },
+      { id: "q5", full: "5. The space felt comfortable in size", short: "Q5 Comfortable Size" },
+      { id: "q6", full: "6. Movement felt natural and easy", short: "Q6 Natural Movement" },
+      { id: "q7", full: "7. The space felt inviting rather than intimidating", short: "Q7 Inviting Space" },
+      { id: "q8", full: "8. Size encouraged smooth and natural body movement", short: "Q8 Encouraged Movement" },
+      { id: "q9", full: "9. The area had enough shade", short: "Q9 Enough Shade" },
+      { id: "q10", full: "10. Protected from rain or heat", short: "Q10 Rain/Heat Protected" },
+      { id: "q11", full: "11. Airflow was comfortable", short: "Q11 Airflow Comfortable" },
+      { id: "q12", full: "12. Temperature felt right", short: "Q12 Temp Right" },
+      { id: "q13", full: "13. Presence of trees/greenery improved comfort", short: "Q13 Greenery/Shading" },
+      { id: "q14", full: "14. Looked visually pleasing", short: "Q14 Visually Pleasing" },
+      { id: "q15", full: "15. Lighting improved comfort and mood", short: "Q15 Lighting Good" },
+      { id: "q16", full: "16. Seating areas were well-integrated and inviting", short: "Q16 Seating Inviting" },
+      { id: "q17", full: "17. Supported fan activities (chants, photos)", short: "Q17 Supported Fan Activities" },
+      { id: "q18", full: "18. Could see where to go next", short: "Q18 Saw Where Next" },
+      { id: "q19", full: "19. Recognized available activities or services", short: "Q19 Recognized Services" },
+      { id: "q20", full: "20. Anticipated what's beyond this space", short: "Q20 Anticipate Beyond" },
+      { id: "q21", full: "21. Signs and cues were visible from afar", short: "Q21 Signs Visible" }
+    ];
+
+    const INT_P2_QUESTIONS = [
+      { id: "q1", full: "1. Entrances and exits were easy to find", short: "Q1 Entrances Easy" },
+      { id: "q2", full: "2. Pathways allowed smooth movement", short: "Q2 Pathways Smooth" },
+      { id: "q3", full: "3. The layout was easy to navigate", short: "Q3 Layout Easy" },
+      { id: "q4", full: "4. The space handled large crowds well", short: "Q4 Crowds Handled" },
+      { id: "q5", full: "5. The space felt comfortable in size", short: "Q5 Comfortable Size" },
+      { id: "q6", full: "6. Movement felt natural and easy", short: "Q6 Natural Movement" },
+      { id: "q7", full: "7. The space felt inviting rather than intimidating", short: "Q7 Inviting Space" },
+      { id: "q8", full: "8. Size encouraged smooth and natural body movement", short: "Q8 Encouraged Movement" },
+      { id: "q9", full: "9. The area had enough shade", short: "Q9 Enough Shade" },
+      { id: "q10", full: "10. Protected from rain or heat", short: "Q10 Rain/Heat Protected" },
+      { id: "q11", full: "11. Airflow was comfortable", short: "Q11 Airflow Comfortable" },
+      { id: "q12", full: "12. Temperature felt right", short: "Q12 Temp Right" },
+      { id: "q13", full: "13. Looked visually pleasing", short: "Q13 Visually Pleasing" },
+      { id: "q14", full: "14. Lighting improved comfort and mood", short: "Q14 Lighting Good" },
+      { id: "q15", full: "15. Seating areas were well-integrated and inviting", short: "Q15 Seating Inviting" },
+      { id: "q16", full: "16. Supported fan activities (chants, photos)", short: "Q16 Supported Fan Activities" },
+      { id: "q17", full: "17. Could see where to go next", short: "Q17 Saw Where Next" },
+      { id: "q18", full: "18. Recognized available activities or services", short: "Q18 Recognized Services" },
+      { id: "q19", full: "19. Anticipated what's beyond this space", short: "Q19 Anticipate Beyond" },
+      { id: "q20", full: "20. Signs and cues were visible from afar", short: "Q20 Signs Visible" }
+    ];
+
+    const PART4_QUESTIONS = [
+      { key: "stress", full: "1. Experienced stress or discomfort", short: "P4.1 Stress" },
+      { key: "lookshade", full: "2. Looked for shaded or less crowded area", short: "P4.2 Looked Shade" },
+      { key: "confused", full: "3. Experienced confusion or disorientation", short: "P4.3 Confused" },
+      { key: "cutting", full: "4. Saw people cutting lines or breaking order", short: "P4.4 Line Cutting" },
+      { key: "social", full: "5. Interacted socially with fans", short: "P4.5 Social Interaction" },
+      { key: "belonging", full: "6. Felt strong sense of belonging", short: "P4.6 Belonging" },
+      { key: "friends", full: "7. Made new friends while waiting", short: "P4.7 Made Friends" },
+      { key: "excitement", full: "1. Increased my excitement for concert", short: "P4.8 Excitement" },
+      { key: "mood", full: "2. Helped build concert mood", short: "P4.9 Concert Mood" },
+      { key: "community", full: "3. Felt part of shared fan community", short: "P4.10 Community" },
+      { key: "bored", full: "4. Felt bored and impatient", short: "P4.11 Bored/Impatient" },
+      { key: "shift", full: "5. Mood shifted to concert mode", short: "P4.12 Mood Shifted" }
+    ];
+
+    const GENERAL_QUESTIONS = [
+      { key: "sat_q1", full: "3.1.1 Overall satisfaction with spaces", short: "Sat Q1 General" },
+      { key: "sat_q2", full: "3.1.2 Organized and efficient", short: "Sat Q2 Organized" },
+      { key: "sat_q3", full: "3.1.3 Shaped anticipation positively", short: "Sat Q3 Anticipation" },
+      { key: "sat_q4", full: "3.1.4 Waiting time bearable/memorable", short: "Sat Q4 Waiting Bearable" },
+      { key: "journey_q1", full: "3.2.1 Pre-event experience rating", short: "Journey Q1 Pre-Event" },
+      { key: "journey_q2", full: "3.2.2 Contribution to overall concert", short: "Journey Q2 Contribution" },
+      { key: "journey_q3", full: "3.2.3 Likelihood to revisit spaces", short: "Journey Q3 Revisit" }
+    ];
+
+    let rawSubmissions = [];
+    let showFullHeaders = false;
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastMsg").textContent = msg;
+      toast.classList.remove("translate-y-20", "opacity-0");
+      setTimeout(() => toast.classList.add("translate-y-20", "opacity-0"), 3500);
+    }
+
+    function toggleHeaderMode() {
+      showFullHeaders = !showFullHeaders;
+      document.getElementById("headerModeLabel").textContent = showFullHeaders ? "Show Short Headers" : "Show Full Questions";
+      renderSheet();
+    }
+
+    async function fetchSurveyData() {
+      const refreshIcon = document.getElementById("refreshIcon");
+      refreshIcon.classList.add("animate-spin");
+
+      try {
+        const { data, error } = await supabaseClient
+          .from("concert_survey")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        rawSubmissions = (data || []).filter(row => {
+          const resp = row.responses || {};
+          return resp.entry_type !== "raffle";
+        });
+
+        updateMetrics();
+        renderSheet();
+        showToast(`Loaded ${rawSubmissions.length} survey submission records`);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        showToast("Error loading Supabase data: " + (err.message || err));
+      } finally {
+        refreshIcon.classList.remove("animate-spin");
+      }
+    }
+
+    function updateMetrics() {
+      const totalUsers = rawSubmissions.length;
+      let extCount = 0;
+      let intCount = 0;
+      let completedCount = 0;
+
+      rawSubmissions.forEach(sub => {
+        if (sub.status === "completed") completedCount++;
+        const spaces = sub.responses?.spaces_encountered || [];
+        spaces.forEach(s => {
+          if (SPACE_META[s]?.type === "EXTERIOR" || s.startsWith("ext")) extCount++;
+          else intCount++;
+        });
+      });
+
+      document.getElementById("statTotalUsers").textContent = totalUsers;
+      document.getElementById("statExtSpaces").textContent = extCount;
+      document.getElementById("statIntSpaces").textContent = intCount;
+      document.getElementById("statCompleted").textContent = completedCount;
+    }
+
+    // 4. RENDER THEAD
+    function renderThead() {
+      const thead = document.getElementById("sheetThead");
+
+      let r1 = `
+        <tr>
+          <th class="sticky-col-1 th-cat-id" rowspan="2">NAME</th>
+          <th class="sticky-col-2 th-cat-id" rowspan="2">SECTION DESCRIPTION</th>
+          <th class="th-cat-id" style="min-width: 175px;" rowspan="2">TIME (PHT)</th>
+          <th class="sticky-col-3 th-cat-id" rowspan="2">EMAIL</th>
+          <th class="sticky-col-4 th-cat-id" rowspan="2">USER ID / SURVEY ID</th>
+
+          <th colspan="7" class="th-cat-id border-l border-slate-700">PRELIMINARY & DEMOGRAPHICS</th>
+
+          <th colspan="21" class="th-cat-ext-p2 border-l-2 border-sky-400">[EXTERIOR] PART 2: PHYSICAL ATTRIBUTES</th>
+          <th colspan="6" class="th-cat-ext-p3 border-l border-sky-400">[EXTERIOR] PART 3: FAN ACTIVITIES</th>
+          <th colspan="12" class="th-cat-ext-p4 border-l border-sky-400">[EXTERIOR] PART 4: BEHAVIORAL & EMOTION</th>
+
+          <th colspan="20" class="th-cat-int-p2 border-l-2 border-purple-400">[INTERIOR] PART 2: PHYSICAL ATTRIBUTES</th>
+          <th colspan="6" class="th-cat-int-p3 border-l border-purple-400">[INTERIOR] PART 3: FAN ACTIVITIES</th>
+          <th colspan="12" class="th-cat-int-p4 border-l border-purple-400">[INTERIOR] PART 4: BEHAVIORAL & EMOTION</th>
+
+          <th colspan="8" class="th-cat-gen border-l-2 border-rose-400">GENERAL SECTION 3: FAN SATISFACTION & CONCERT JOURNEY</th>
+        </tr>
+      `;
+
+      let r2 = `
+        <tr>
+          <th style="min-width: 140px;" class="bg-slate-900">ORIGIN</th>
+          <th style="min-width: 130px;" class="bg-slate-900">ARRIVAL TIME</th>
+          <th style="min-width: 130px;" class="bg-slate-900">FREQUENCY</th>
+          <th style="min-width: 180px;" class="bg-slate-900">TICKET CLASS</th>
+          <th style="min-width: 100px;" class="bg-slate-900">AGE</th>
+          <th style="min-width: 100px;" class="bg-slate-900">GENDER</th>
+          <th style="min-width: 220px;" class="bg-slate-900">SPACES ENCOUNTERED</th>
+      `;
+
+      EXT_P2_QUESTIONS.forEach(q => {
+        const text = showFullHeaders ? q.full : q.short;
+        r2 += `<th class="bg-sky-950 font-normal font-mono text-center" style="min-width: 140px;" title="${q.full}">${text}</th>`;
+      });
+
+      r2 += `
+        <th class="bg-sky-900 font-normal" style="min-width: 180px;">EXT ACTIVITIES DONE</th>
+        <th class="bg-sky-900 font-normal" style="min-width: 150px;">EXT OTHER ACTIVITIES</th>
+        <th class="bg-sky-900 font-normal" style="min-width: 130px;">EXT DURATION</th>
+        <th class="bg-sky-900 font-normal" style="min-width: 190px;">EXT ENJOYED / MEMORABLE</th>
+        <th class="bg-sky-900 font-normal" style="min-width: 190px;">EXT CHALLENGES</th>
+        <th class="bg-sky-900 font-normal" style="min-width: 190px;">EXT IMPROVEMENTS</th>
+      `;
+
+      PART4_QUESTIONS.forEach(q => {
+        const text = showFullHeaders ? q.full : q.short;
+        r2 += `<th class="bg-sky-950 font-normal font-mono text-center" style="min-width: 130px;" title="${q.full}">EXT ${text}</th>`;
+      });
+
+      INT_P2_QUESTIONS.forEach(q => {
+        const text = showFullHeaders ? q.full : q.short;
+        r2 += `<th class="bg-purple-950 font-normal font-mono text-center" style="min-width: 140px;" title="${q.full}">${text}</th>`;
+      });
+
+      r2 += `
+        <th class="bg-purple-900 font-normal" style="min-width: 180px;">INT ACTIVITIES DONE</th>
+        <th class="bg-purple-900 font-normal" style="min-width: 150px;">INT OTHER ACTIVITIES</th>
+        <th class="bg-purple-900 font-normal" style="min-width: 130px;">INT DURATION</th>
+        <th class="bg-purple-900 font-normal" style="min-width: 190px;">INT ENJOYED / MEMORABLE</th>
+        <th class="bg-purple-900 font-normal" style="min-width: 190px;">INT CHALLENGES</th>
+        <th class="bg-purple-900 font-normal" style="min-width: 190px;">INT IMPROVEMENTS</th>
+      `;
+
+      PART4_QUESTIONS.forEach(q => {
+        const text = showFullHeaders ? q.full : q.short;
+        r2 += `<th class="bg-purple-950 font-normal font-mono text-center" style="min-width: 130px;" title="${q.full}">INT ${text}</th>`;
+      });
+
+      GENERAL_QUESTIONS.forEach(q => {
+        const text = showFullHeaders ? q.full : q.short;
+        r2 += `<th class="bg-rose-950 font-normal font-mono text-center" style="min-width: 135px;" title="${q.full}">${text}</th>`;
+      });
+      r2 += `<th class="bg-rose-950 font-normal" style="min-width: 250px;">MOST MEMORABLE PART</th>`;
+
+      r2 += `</tr>`;
+      thead.innerHTML = r1 + r2;
+    }
+
+    // 5. RENDER BODY ROWS
+    function renderSheet() {
+      renderThead();
+
+      const tbody = document.getElementById("sheetTbody");
+      const searchVal = document.getElementById("searchFilter").value.toLowerCase().trim();
+      const spaceTypeFilter = document.getElementById("spaceTypeFilter").value;
+      const ticketTierFilter = document.getElementById("ticketTierFilter").value;
+      const specificSpaceFilter = document.getElementById("specificSpaceFilter").value;
+      const groupByMode = document.getElementById("groupByMode").value;
+
+      if (!rawSubmissions.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="98" class="text-center py-12 text-slate-500">
+              No submissions found in Supabase table.
+            </td>
+          </tr>
+        `;
+        document.getElementById("filteredCountLabel").textContent = "0 submissions";
+        return;
+      }
+
+      let totalRowsRendered = 0;
+      let matchedItems = 0;
+      let html = "";
+
+      const filteredSubmissions = rawSubmissions.filter(sub => {
+        const r = sub.responses || {};
+        const name = r.prelim_name || "";
+        const email = r.prelim_email || "";
+        const subId = sub.id || "";
+        const origin = r.demo_origin || "";
+        const ticketClass = r.prelim_ticket_class || "";
+
+        const matchSearch = !searchVal || 
+          name.toLowerCase().includes(searchVal) ||
+          email.toLowerCase().includes(searchVal) ||
+          subId.toLowerCase().includes(searchVal) ||
+          origin.toLowerCase().includes(searchVal);
+
+        if (!matchSearch) return false;
+
+        if (ticketTierFilter !== "all" && ticketClass !== ticketTierFilter) {
+          return false;
+        }
+
+        return true;
+      });
+
+      if (groupByMode === "survey_id") {
+        filteredSubmissions.forEach(sub => {
+          const r = sub.responses || {};
+          const subId = sub.id || "N/A";
+          const name = r.prelim_name || "(Anonymous)";
+          const email = r.prelim_email || "-";
+          const origin = r.demo_origin || "-";
+          const arrivalTime = r.prelim_arrival_time || "-";
+          const frequency = r.prelim_venue_frequency || "-";
+          const ticketClass = r.prelim_ticket_class || "-";
+          const age = r.demo_age || "-";
+          const gender = r.demo_gender || "-";
+          const phtTimestamp = formatPHT(sub.created_at);
+          let rawSpaces = r.spaces_encountered || [];
+          const spacesSummary = rawSpaces.map(s => SPACE_META[s]?.label || s).join(", ");
+
+          let spaces = [...rawSpaces];
+          if (specificSpaceFilter !== "all") {
+            spaces = spaces.filter(s => s === specificSpaceFilter);
+          }
+          if (spaceTypeFilter === "ext") {
+            spaces = spaces.filter(s => SPACE_META[s]?.type === "EXTERIOR" || s.startsWith("ext"));
+          } else if (spaceTypeFilter === "int") {
+            spaces = spaces.filter(s => SPACE_META[s]?.type === "INTERIOR" || s.startsWith("int"));
+          }
+
+          if (specificSpaceFilter !== "all" && spaces.length === 0) return;
+
+          matchedItems++;
+
+          html += `
+            <tr class="user-main-row group-master-row">
+              <td class="sticky-col-1">${escapeHtml(name)}</td>
+              <td class="sticky-col-2 font-bold uppercase tracking-wider text-amber-950">${escapeHtml("PARTICIPANT SUMMARY")}</td>
+              <td class="font-mono text-[12px] text-amber-950 font-semibold bg-amber-100/90 whitespace-nowrap">${escapeHtml(phtTimestamp)}</td>
+              <td class="sticky-col-3 font-mono text-[12px]">${escapeHtml(email)}</td>
+              <td class="sticky-col-4 font-mono text-[12px] font-bold">${escapeHtml(subId)}</td>
+              
+              <td>${escapeHtml(origin)}</td>
+              <td>${escapeHtml(arrivalTime)}</td>
+              <td>${escapeHtml(frequency)}</td>
+              <td>${escapeHtml(ticketClass)}</td>
+              <td>${escapeHtml(age)}</td>
+              <td>${escapeHtml(gender)}</td>
+              <td class="max-w-[220px] truncate" title="${escapeHtml(spacesSummary)}">${escapeHtml(spacesSummary || "-")}</td>
+
+              <td colspan="80" class="bg-amber-100/70 text-slate-700 font-medium italic text-[12px] pl-4">
+                Evaluated ${spaces.length} space(s) &middot; Status: ${escapeHtml(sub.status || "in_progress")}
+              </td>
+            </tr>
+          `;
+          totalRowsRendered++;
+
+          spaces.forEach(spaceKey => {
+            html += generateSpaceDetailRow(subId, spaceKey, r, null, phtTimestamp);
+            totalRowsRendered++;
+          });
+
+          if (specificSpaceFilter === "all" && spaceTypeFilter === "all") {
+            html += generateFinishedSurveyRow(subId, r, phtTimestamp);
+            totalRowsRendered++;
+          }
+        });
+
+      } else if (groupByMode === "threshold_space") {
+        const spaceKeys = Object.keys(SPACE_META);
+
+        spaceKeys.forEach(spaceKey => {
+          if (specificSpaceFilter !== "all" && spaceKey !== specificSpaceFilter) return;
+
+          const meta = SPACE_META[spaceKey];
+          const isExterior = meta.type === "EXTERIOR";
+
+          if (spaceTypeFilter === "ext" && !isExterior) return;
+          if (spaceTypeFilter === "int" && isExterior) return;
+
+          const matchingSubs = filteredSubmissions.filter(sub => {
+            const list = sub.responses?.spaces_encountered || [];
+            return list.includes(spaceKey);
+          });
+
+          if (!matchingSubs.length) return;
+
+          matchedItems++;
+
+          html += `
+            <tr class="group-master-row">
+              <td class="sticky-col-1 font-bold text-amber-950">[SPACE GROUP]</td>
+              <td class="sticky-col-2 font-bold text-amber-950 uppercase tracking-wider text-[13px]">
+                ${escapeHtml(meta.label)}
+              </td>
+              <td class="font-mono text-[11px] text-amber-950 bg-amber-200/90 font-semibold text-center">-</td>
+              <td class="sticky-col-3 font-semibold">${meta.type}</td>
+              <td class="sticky-col-4 font-mono text-[12px] font-bold">${spaceKey}</td>
+              <td colspan="87" class="bg-amber-200/80 text-amber-950 font-bold px-4">
+                Total Respondents in this Space: ${matchingSubs.length}
+              </td>
+            </tr>
+          `;
+          totalRowsRendered++;
+
+          matchingSubs.forEach(sub => {
+            const r = sub.responses || {};
+            const subId = sub.id || "N/A";
+            const name = r.prelim_name || "(Anonymous)";
+            const email = r.prelim_email || "-";
+            const origin = r.demo_origin || "-";
+            const arrivalTime = r.prelim_arrival_time || "-";
+            const frequency = r.prelim_venue_frequency || "-";
+            const ticketClass = r.prelim_ticket_class || "-";
+            const age = r.demo_age || "-";
+            const gender = r.demo_gender || "-";
+            const phtTimestamp = formatPHT(sub.created_at);
+            const allSpaces = (r.spaces_encountered || []).map(s => SPACE_META[s]?.label || s).join(", ");
+
+            html += generateSpaceDetailRow(subId, spaceKey, r, {
+              name, email, origin, arrivalTime, frequency, ticketClass, age, gender, allSpaces
+            }, phtTimestamp);
+            totalRowsRendered++;
+          });
+        });
+
+      } else if (groupByMode === "ticket_tier") {
+        const TIERS = [
+          "VIP Standing (including PIT A/B)",
+          "VIP Seated",
+          "Lower Box (Premium and Regular)",
+          "Upper Box",
+          "Other / Unspecified"
+        ];
+
+        TIERS.forEach(tier => {
+          if (ticketTierFilter !== "all" && tier !== ticketTierFilter) return;
+
+          const subsInTier = filteredSubmissions.filter(sub => {
+            const tc = sub.responses?.prelim_ticket_class || "Other / Unspecified";
+            return tc === tier || (tier === "Other / Unspecified" && !TIERS.slice(0, 4).includes(tc));
+          });
+
+          if (!subsInTier.length) return;
+
+          matchedItems++;
+
+          html += `
+            <tr class="group-master-row">
+              <td class="sticky-col-1 font-bold text-amber-950">[TIER GROUP]</td>
+              <td class="sticky-col-2 font-bold text-amber-950 uppercase tracking-wider text-[13px]">
+                ${escapeHtml(tier)}
+              </td>
+              <td class="font-mono text-[11px] text-amber-950 bg-amber-200/90 font-semibold text-center">-</td>
+              <td class="sticky-col-3 font-semibold">TICKET CLASS</td>
+              <td class="sticky-col-4 font-mono text-[12px] font-bold">${subsInTier.length} USERS</td>
+              <td colspan="87" class="bg-amber-200/80 text-amber-950 font-bold px-4">
+                Total Respondents in ${escapeHtml(tier)}: ${subsInTier.length}
+              </td>
+            </tr>
+          `;
+          totalRowsRendered++;
+
+          subsInTier.forEach(sub => {
+            const r = sub.responses || {};
+            const subId = sub.id || "N/A";
+            const name = r.prelim_name || "(Anonymous)";
+            const email = r.prelim_email || "-";
+            const origin = r.demo_origin || "-";
+            const arrivalTime = r.prelim_arrival_time || "-";
+            const frequency = r.prelim_venue_frequency || "-";
+            const ticketClass = r.prelim_ticket_class || tier;
+            const age = r.demo_age || "-";
+            const gender = r.demo_gender || "-";
+            const phtTimestamp = formatPHT(sub.created_at);
+            let rawSpaces = r.spaces_encountered || [];
+            const spacesSummary = rawSpaces.map(s => SPACE_META[s]?.label || s).join(", ");
+            let spaces = [...rawSpaces];
+
+            if (specificSpaceFilter !== "all") {
+              spaces = spaces.filter(s => s === specificSpaceFilter);
+            }
+            if (spaceTypeFilter === "ext") {
+              spaces = spaces.filter(s => SPACE_META[s]?.type === "EXTERIOR" || s.startsWith("ext"));
+            } else if (spaceTypeFilter === "int") {
+              spaces = spaces.filter(s => SPACE_META[s]?.type === "INTERIOR" || s.startsWith("int"));
+            }
+
+            html += `
+              <tr class="bg-slate-100 font-semibold text-slate-800">
+                <td class="sticky-col-1 bg-slate-100 font-bold">${escapeHtml(name)}</td>
+                <td class="sticky-col-2 bg-slate-100 text-slate-700">↳ ${spaces.length} space(s) evaluated</td>
+                <td class="font-mono text-[12px] text-slate-600 bg-slate-100 whitespace-nowrap">${escapeHtml(phtTimestamp)}</td>
+                <td class="sticky-col-3 bg-slate-100 font-mono text-[12px]">${escapeHtml(email)}</td>
+                <td class="sticky-col-4 bg-slate-100 font-mono text-[12px]">${escapeHtml(subId)}</td>
+                <td>${escapeHtml(origin)}</td>
+                <td>${escapeHtml(arrivalTime)}</td>
+                <td>${escapeHtml(frequency)}</td>
+                <td>${escapeHtml(ticketClass)}</td>
+                <td>${escapeHtml(age)}</td>
+                <td>${escapeHtml(gender)}</td>
+                <td class="max-w-[220px] truncate" title="${escapeHtml(spacesSummary)}">${escapeHtml(spacesSummary || "-")}</td>
+                <td colspan="80" class="bg-slate-100 text-slate-500 italic text-[12px]">
+                  Evaluations for participant ${escapeHtml(subId)}
+                </td>
+              </tr>
+            `;
+            totalRowsRendered++;
+
+            spaces.forEach(spaceKey => {
+              html += generateSpaceDetailRow(subId, spaceKey, r, null, phtTimestamp);
+              totalRowsRendered++;
+            });
+          });
+        });
+      }
+
+      tbody.innerHTML = html;
+      document.getElementById("filteredCountLabel").textContent = `${matchedItems} group matches (${totalRowsRendered} visible rows)`;
+    }
+
+    function generateSpaceDetailRow(subId, spaceKey, r, demoOverride = null, phtTimestamp = "-") {
+      const spaceInfo = SPACE_META[spaceKey] || { 
+        label: spaceKey, 
+        type: spaceKey.startsWith("ext") ? "EXTERIOR" : "INTERIOR" 
+      };
+      const isExterior = spaceInfo.type === "EXTERIOR";
+
+      const colName = demoOverride ? demoOverride.name : "↳";
+      const colEmail = demoOverride ? demoOverride.email : "";
+      const colOrigin = demoOverride ? demoOverride.origin : "-";
+      const colArrival = demoOverride ? demoOverride.arrivalTime : "-";
+      const colFreq = demoOverride ? demoOverride.frequency : "-";
+      const colTier = demoOverride ? demoOverride.ticketClass : "-";
+      const colAge = demoOverride ? demoOverride.age : "-";
+      const colGender = demoOverride ? demoOverride.gender : "-";
+      const colSpaces = demoOverride ? demoOverride.allSpaces : spaceInfo.label;
+
+      let rowHtml = `
+        <tr class="space-sub-row">
+          <td class="sticky-col-1 bg-white font-medium text-slate-700">${escapeHtml(colName)}</td>
+          <td class="sticky-col-2 bg-white font-medium text-slate-800">
+            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold ${isExterior ? 'bg-sky-100 text-sky-800 border border-sky-300' : 'bg-purple-100 text-purple-800 border border-purple-300'} mr-1.5">
+              [${spaceInfo.type}]
+            </span>
+            ${escapeHtml(spaceInfo.label)}
+          </td>
+          <td class="font-mono text-[12px] text-slate-500 bg-white whitespace-nowrap">${escapeHtml(phtTimestamp)}</td>
+          <td class="sticky-col-3 bg-white font-mono text-[12px] text-slate-500">${escapeHtml(colEmail)}</td>
+          <td class="sticky-col-4 bg-white font-mono text-[12px] text-slate-600">${escapeHtml(subId)}</td>
+
+          <td>${escapeHtml(colOrigin)}</td>
+          <td>${escapeHtml(colArrival)}</td>
+          <td>${escapeHtml(colFreq)}</td>
+          <td>${escapeHtml(colTier)}</td>
+          <td>${escapeHtml(colAge)}</td>
+          <td>${escapeHtml(colGender)}</td>
+          <td class="max-w-[220px] truncate" title="${escapeHtml(colSpaces)}">${escapeHtml(colSpaces)}</td>
+      `;
+
+      if (isExterior) {
+        EXT_P2_QUESTIONS.forEach((q, idx) => {
+          const val = r[`attr_${spaceKey}_q${idx + 1}`] || "";
+          rowHtml += `<td class="rating-val ${val ? 'text-blue-700 bg-sky-50/50' : ''}">${val || ""}</td>`;
+        });
+
+        const duration = r[`duration_${spaceKey}`] || "";
+        const acts = (r[`act_${spaceKey}`] || []).join(", ");
+        const otherAct = r[`act_${spaceKey}_other`] || "";
+        const enjoyed = r[`feedback_enjoyed_${spaceKey}`] || "";
+        const challenges = r[`feedback_challenges_${spaceKey}`] || "";
+        const improvements = r[`feedback_improvements_${spaceKey}`] || "";
+
+        rowHtml += `
+          <td class="max-w-[200px] truncate" title="${escapeHtml(acts)}">${escapeHtml(acts)}</td>
+          <td class="max-w-[160px] truncate" title="${escapeHtml(otherAct)}">${escapeHtml(otherAct)}</td>
+          <td>${escapeHtml(duration)}</td>
+          <td class="max-w-[200px] truncate" title="${escapeHtml(enjoyed)}">${escapeHtml(enjoyed)}</td>
+          <td class="max-w-[200px] truncate" title="${escapeHtml(challenges)}">${escapeHtml(challenges)}</td>
+          <td class="max-w-[200px] truncate" title="${escapeHtml(improvements)}">${escapeHtml(improvements)}</td>
+        `;
+
+        PART4_QUESTIONS.forEach(q => {
+          const val = r[`beh_${spaceKey}_${q.key}`] || r[`emo_${spaceKey}_${q.key}`] || "";
+          rowHtml += `<td class="rating-val ${val ? 'text-sky-800 bg-sky-50/50' : ''}">${val || ""}</td>`;
+        });
+      } else {
+        for (let i = 0; i < (21 + 6 + 12); i++) {
+          rowHtml += `<td class="bg-slate-50/60 text-slate-300 text-center">-</td>`;
+        }
+      }
+
+      if (!isExterior) {
+        INT_P2_QUESTIONS.forEach((q, idx) => {
+          const val = r[`attr_${spaceKey}_q${idx + 1}`] || "";
+          rowHtml += `<td class="rating-val ${val ? 'text-purple-700 bg-purple-50/50' : ''}">${val || ""}</td>`;
+        });
+
+        const duration = r[`duration_${spaceKey}`] || "";
+        const acts = (r[`act_${spaceKey}`] || []).join(", ");
+        const otherAct = r[`act_${spaceKey}_other`] || "";
+        const enjoyed = r[`feedback_enjoyed_${spaceKey}`] || "";
+        const challenges = r[`feedback_challenges_${spaceKey}`] || "";
+        const improvements = r[`feedback_improvements_${spaceKey}`] || "";
+
+        rowHtml += `
+          <td class="max-w-[200px] truncate" title="${escapeHtml(acts)}">${escapeHtml(acts)}</td>
+          <td class="max-w-[160px] truncate" title="${escapeHtml(otherAct)}">${escapeHtml(otherAct)}</td>
+          <td>${escapeHtml(duration)}</td>
+          <td class="max-w-[200px] truncate" title="${escapeHtml(enjoyed)}">${escapeHtml(enjoyed)}</td>
+          <td class="max-w-[200px] truncate" title="${escapeHtml(challenges)}">${escapeHtml(challenges)}</td>
+          <td class="max-w-[200px] truncate" title="${escapeHtml(improvements)}">${escapeHtml(improvements)}</td>
+        `;
+
+        PART4_QUESTIONS.forEach(q => {
+          const val = r[`beh_${spaceKey}_${q.key}`] || r[`emo_${spaceKey}_${q.key}`] || "";
+          rowHtml += `<td class="rating-val ${val ? 'text-purple-800 bg-purple-50/50' : ''}">${val || ""}</td>`;
+        });
+      } else {
+        for (let i = 0; i < (20 + 6 + 12); i++) {
+          rowHtml += `<td class="bg-slate-50/60 text-slate-300 text-center">-</td>`;
+        }
+      }
+
+      for (let i = 0; i < GENERAL_QUESTIONS.length + 1; i++) {
+        rowHtml += `<td class="text-slate-300 text-center">-</td>`;
+      }
+
+      rowHtml += `</tr>`;
+      return rowHtml;
+    }
+
+    function generateFinishedSurveyRow(subId, r, phtTimestamp = "-") {
+      const allSpaces = (r.spaces_encountered || []).map(s => SPACE_META[s]?.label || s).join(", ");
+
+      return `
+        <tr class="summary-sub-row">
+          <td class="sticky-col-1 text-slate-400">↳</td>
+          <td class="sticky-col-2 font-bold text-slate-900 bg-slate-200">FINISHED SURVEY / GENERAL JOURNEY</td>
+          <td class="font-mono text-[12px] text-slate-500 bg-slate-200 whitespace-nowrap">${escapeHtml(phtTimestamp)}</td>
+          <td class="sticky-col-3 text-slate-400"></td>
+          <td class="sticky-col-4 font-mono text-[12px] text-slate-600">${escapeHtml(subId)}</td>
+
+          <td class="text-slate-300 text-center">-</td>
+          <td class="text-slate-300 text-center">-</td>
+          <td class="text-slate-300 text-center">-</td>
+          <td class="text-slate-300 text-center">-</td>
+          <td class="text-slate-300 text-center">-</td>
+          <td class="text-slate-300 text-center">-</td>
+          <td class="max-w-[220px] truncate text-slate-400" title="${escapeHtml(allSpaces)}">${escapeHtml(allSpaces || "-")}</td>
+
+          <td colspan="${(21 + 6 + 12) + (20 + 6 + 12)}" class="bg-slate-100 text-slate-400 italic text-center">
+            (Overall Concert Experience Evaluation)
+          </td>
+
+          <td class="rating-val text-rose-800 bg-rose-50 font-bold">${r.sat_q1 || ""}</td>
+          <td class="rating-val text-rose-800 bg-rose-50 font-bold">${r.sat_q2 || ""}</td>
+          <td class="rating-val text-rose-800 bg-rose-50 font-bold">${r.sat_q3 || ""}</td>
+          <td class="rating-val text-rose-800 bg-rose-50 font-bold">${r.sat_q4 || ""}</td>
+
+          <td class="rating-val text-purple-800 bg-purple-50 font-bold">${r.journey_q1 || ""}</td>
+          <td class="rating-val text-purple-800 bg-purple-50 font-bold">${r.journey_q2 || ""}</td>
+          <td class="rating-val text-purple-800 bg-purple-50 font-bold">${r.journey_q3 || ""}</td>
+
+          <td class="max-w-[280px] truncate font-medium text-slate-900 bg-amber-50" title="${escapeHtml(r.journey_most_memorable || '')}">
+            ${escapeHtml(r.journey_most_memorable || "")}
+          </td>
+        </tr>
+      `;
+    }
+
+    function exportToXLSX() {
+      const table = document.getElementById("matrixTable");
+      if (!table) return;
+
+      showToast("Generating Excel file matching current view...");
+
+      const wb = XLSX.utils.table_to_book(table, {
+        sheet: "Threshold Assessment",
+        raw: true
+      });
+
+      const mode = document.getElementById("groupByMode").value;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const fileName = `Threshold_Spaces_${mode}_${dateStr}.xlsx`;
+
+      XLSX.writeFile(wb, fileName);
+      showToast(`Downloaded ${fileName}`);
+    }
+
+    function exportToCSV() {
+      const table = document.getElementById("matrixTable");
+      if (!table) return;
+
+      const wb = XLSX.utils.table_to_book(table, { sheet: "Data", raw: true });
+      const ws = wb.Sheets["Data"];
+      const csv = XLSX.utils.sheet_to_csv(ws);
+
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const mode = document.getElementById("groupByMode").value;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Threshold_Spaces_${mode}_${dateStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast("CSV file successfully downloaded.");
+    }
+
+    function escapeHtml(str) {
+      if (str == null) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatPHT(dateStr) {
+      if (!dateStr) return "-";
+      try {
+        const d = new Date(dateStr);
+        return new Intl.DateTimeFormat("en-PH", {
+          timeZone: "Asia/Manila",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true
+        }).format(d);
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      fetchSurveyData();
+    });
+  </script>
+</body>
+</html>
