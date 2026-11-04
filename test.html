@@ -1026,15 +1026,15 @@ If you joined the crowd during the Regine Velasquez 3-Day Concert, your pre-show
         <legend>Preliminary Information</legend>
 
         <div class="form-group">
-          <label for="prelim_name">Name (Optional):</label>
+          <label for="prelim_name">Name:</label>
           <input type="text" id="prelim_name" name="prelim_name"
-                 placeholder="Your name">
+                 placeholder="Your name" required>
         </div>
 
         <div class="form-group">
-          <label for="prelim_email">Email (Optional):</label>
+          <label for="prelim_email">Email:</label>
           <input type="email" id="prelim_email" name="prelim_email"
-                 placeholder="name@example.com">
+                 placeholder="name@example.com" required>
         </div>
 
         <div class="form-group">
@@ -1069,14 +1069,10 @@ If you joined the crowd during the Regine Velasquez 3-Day Concert, your pre-show
           <select id="prelim_ticket_class"
                   name="prelim_ticket_class" required>
             <option value="">-- Select Ticket Class --</option>
-            <option value="VIP Standing (including PIT A/B)">
-              VIP Standing (including PIT A/B)
-            </option>
-            <option value="VIP Seated">VIP Seated</option>
-            <option value="Lower Box (Premium and Regular)">
-              Lower Box (Premium and Regular)
-            </option>
-            <option value="Upper Box">Upper Box</option>
+            <option value="Platinum and SVIP">Platinum and SVIP</option>
+            <option value="VIP">VIP</option>
+            <option value="VIP SRO Standing">VIP SRO Standing</option>
+            <option value="Box Premium and Regular">Box Premium and Regular</option>
           </select>
         </div>
       </fieldset>
@@ -2011,7 +2007,8 @@ const SPACE_IMAGES = {
               id="feedback_enjoyed_${spaceKey}"
               name="feedback_enjoyed_${spaceKey}"
               rows="3"
-              placeholder="Share your experience (optional)"
+              placeholder="Share your experience"
+              required
             ></textarea>
           </div>
 
@@ -2023,7 +2020,8 @@ const SPACE_IMAGES = {
               id="feedback_challenges_${spaceKey}"
               name="feedback_challenges_${spaceKey}"
               rows="3"
-              placeholder="Describe any challenges (optional)"
+              placeholder="Describe any challenges"
+              required
             ></textarea>
           </div>
 
@@ -2035,7 +2033,8 @@ const SPACE_IMAGES = {
               id="feedback_improvements_${spaceKey}"
               name="feedback_improvements_${spaceKey}"
               rows="3"
-              placeholder="Seating, shade, signage, circulation, etc. (optional)"
+              placeholder="Seating, shade, signage, circulation, etc."
+              required
             ></textarea>
           </div>
 
@@ -2199,7 +2198,8 @@ const SPACE_IMAGES = {
             id="journey_most_memorable"
             name="journey_most_memorable"
             rows="3"
-            placeholder="Share your experience (optional)"
+            placeholder="Share your experience"
+            required
           ></textarea>
         </div>
 
