@@ -1,0 +1,2812 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Threshold Spaces Arena Assessment Survey</title>
+
+  <!-- Supabase CDN Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+    :root {
+      --accent: #4338ca;
+      --accent-hover: #3730a3;
+      --accent-soft: #eef2ff;
+      --accent-line: #c7d2fe;
+      --bg: #f5f6fa;
+      --surface: #ffffff;
+      --surface-alt: #fafbfd;
+      --border: #e6e8ef;
+      --border-strong: #d4d7e1;
+      --text-main: #111827;
+      --text-body: #374151;
+      --text-muted: #6b7280;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 1px 2px rgba(17, 24, 39, 0.04),
+                0 8px 24px rgba(17, 24, 39, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, sans-serif;
+      max-width: 860px;
+      margin: 40px auto;
+      padding: 0 16px;
+      line-height: 1.55;
+      color: var(--text-body);
+      background-color: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .card {
+      background: var(--surface);
+      padding: 44px 48px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin: 0 0 10px;
+      color: var(--text-main);
+    }
+
+    h2 {
+      font-size: 21px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      color: var(--text-main);
+      margin: 32px 0 8px;
+    }
+
+    h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 20px;
+      color: var(--text-main);
+    }
+
+    p {
+      margin: 0 0 16px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 14.5px;
+      margin-bottom: 28px;
+    }
+
+    small {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    fieldset {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 22px 24px 8px;
+      margin: 0 0 24px;
+      background: var(--surface);
+      min-width: 0;
+    }
+
+    legend {
+      padding: 0 8px;
+      margin-left: -8px;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-main);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    label strong {
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14.5px;
+      color: var(--text-main);
+      background: var(--surface);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #9ca3af;
+    }
+
+    select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 40px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%236b7280' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      cursor: pointer;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 88px;
+    }
+
+    input:hover,
+    select:hover,
+    textarea:hover {
+      border-color: #b8bccb;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    input[type="radio"],
+    input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin: 10px 0 4px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      font-size: 14px;
+      font-weight: 450;
+      color: var(--text-body);
+      cursor: pointer;
+      margin-bottom: 0;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .checkbox-item:hover {
+      border-color: var(--border-strong);
+    }
+
+    .checkbox-item:has(input:checked) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--text-main);
+    }
+
+    .checkbox-item input {
+      width: 17px;
+      height: 17px;
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    /* Multi-page survey */
+
+    .survey-page {
+      display: none;
+    }
+
+    .survey-page.active {
+      display: block;
+    }
+
+    .page-heading {
+      margin-top: 0;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: #e9ebf2;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 32px 0 10px;
+    }
+
+    .progress-fill {
+      width: 0;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .navigation-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .nav-btn,
+    .submit-btn {
+      padding: 13px 26px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      transition: background-color 0.15s ease, border-color 0.15s ease,
+        transform 0.1s ease;
+    }
+
+    .nav-btn {
+      background: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+    }
+
+    .nav-btn:hover {
+      background: var(--surface-alt);
+      border-color: #b8bccb;
+    }
+
+    #nextBtn {
+      margin-left: auto;
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    #nextBtn:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .nav-btn:active,
+    .submit-btn:active {
+      transform: translateY(1px);
+    }
+
+    .nav-btn:focus-visible,
+    .submit-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px var(--accent-line);
+    }
+
+    .nav-btn:disabled,
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .submit-btn {
+      background: var(--accent);
+      color: #ffffff;
+      border: 1px solid var(--accent);
+    }
+
+    .submit-btn:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .navigation-buttons .submit-btn {
+      width: auto;
+      margin-top: 0;
+      margin-left: auto;
+    }
+
+    button[hidden] {
+      display: none !important;
+    }
+
+    #pageIndicator {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Likert matrix */
+
+    .likert-table {
+      --likert-accent: var(--accent);
+      --likert-text: var(--text-body);
+      --likert-line: var(--border);
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 14px 0 28px;
+      font-size: 14px;
+      color: var(--likert-text);
+      background: var(--surface);
+      border: 1px solid var(--likert-line);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .likert-table th,
+    .likert-table td {
+      border: none;
+      padding: 10px 8px;
+      vertical-align: middle;
+    }
+
+    .likert-table thead th {
+      padding-top: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--likert-line);
+      background: var(--surface-alt);
+      text-align: center;
+      vertical-align: top;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--text-main);
+    }
+
+    .likert-table th.statement-col {
+      width: 50%;
+      padding-left: 20px;
+      text-align: left;
+      vertical-align: middle;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* Scale labels under the 1-5 headings */
+    .likert-table thead th:not(.statement-col)::after {
+      display: block;
+      margin-top: 2px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .likert-table thead th:nth-child(2)::after { content: "(Strongly Disagree)"; }
+    .likert-table thead th:nth-child(3)::after { content: "(Disagree)"; }
+    .likert-table thead th:nth-child(4)::after { content: "(Neutral)"; }
+    .likert-table thead th:nth-child(5)::after { content: "(Agree)"; }
+    .likert-table thead th:nth-child(6)::after { content: "(Strongly Agree)"; }
+
+    /* Concert journey table uses a Very Poor - Excellent scale */
+    .likert-table:has(input[name^="journey_"]) thead th:nth-child(2)::after { content: "(Very Poor)"; }
+    .likert-table:has(input[name^="journey_"]) thead th:nth-child(3)::after,
+    .likert-table:has(input[name^="journey_"]) thead th:nth-child(4)::after,
+    .likert-table:has(input[name^="journey_"]) thead th:nth-child(5)::after { content: ""; }
+    .likert-table:has(input[name^="journey_"]) thead th:nth-child(6)::after { content: "(Excellent)"; }
+
+    .likert-table td:first-child {
+      padding-left: 20px;
+    }
+
+    .likert-table tbody tr:not(:has(.likert-cat-header)):hover td {
+      background: var(--surface-alt);
+    }
+
+    .likert-table tbody tr:first-child td {
+      padding-top: 14px;
+    }
+
+    .likert-table tbody tr:last-child td {
+      padding-bottom: 18px;
+    }
+
+    .likert-table td.scale-col {
+      text-align: center;
+      width: 10%;
+    }
+
+    .likert-table td.scale-col input {
+      appearance: none;
+      -webkit-appearance: none;
+      display: inline-block;
+      vertical-align: middle;
+      width: 22px;
+      height: 22px;
+      margin: 0;
+      border: 1.5px solid #b4b9cc;
+      border-radius: 50%;
+      background: var(--surface);
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease,
+        box-shadow 0.15s ease;
+    }
+
+    .likert-table td.scale-col input:not(:checked):hover {
+      border-color: var(--likert-accent);
+      background: var(--accent-soft);
+    }
+
+    .likert-table td.scale-col input:checked {
+      border-color: var(--likert-accent);
+      background: var(--likert-accent);
+      box-shadow: inset 0 0 0 4px #ffffff;
+    }
+
+    .likert-table td.scale-col input:focus-visible {
+      outline: 2px solid var(--likert-accent);
+      outline-offset: 2px;
+    }
+
+    .likert-table td.likert-cat-header {
+      padding-top: 18px;
+      padding-bottom: 4px;
+      background: none;
+      font-weight: 600;
+      color: var(--likert-accent);
+      text-transform: uppercase;
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+    }
+
+    .space-card-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .space-card-wrapper h3 {
+      margin-top: 0;
+    }
+
+    .space-card-wrapper > p strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* Space images */
+
+    .checkbox-item.space-option {
+      position: relative;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      align-content: start;
+      gap: 10px;
+      padding: 8px 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease,
+        background-color 0.15s ease;
+    }
+
+    .checkbox-item.space-option:hover {
+      border-color: var(--border-strong);
+      box-shadow: 0 4px 14px rgba(17, 24, 39, 0.06);
+    }
+
+    .checkbox-item.space-option:has(input:checked) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .checkbox-item.space-option input {
+      margin-left: 4px;
+    }
+
+    .space-thumb {
+      grid-column: 1 / -1;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 9px;
+      display: block;
+      background: #eceef3;
+    }
+
+    .space-hero {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: 340px;
+      object-fit: cover;
+      border-radius: 12px;
+      display: block;
+      margin-bottom: 22px;
+      background: #eceef3;
+    }
+
+    /* Photo zoom */
+
+    .zoom-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      background: rgba(17, 24, 39, 0.55);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .zoom-btn:hover,
+    .zoom-btn:focus-visible {
+      background: rgba(17, 24, 39, 0.85);
+    }
+
+    .zoom-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    body.lightbox-open {
+      overflow: hidden;
+    }
+
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      background: rgba(10, 12, 20, 0.94);
+    }
+
+    .lightbox[hidden] {
+      display: none;
+    }
+
+    .lightbox-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      color: #ffffff;
+    }
+
+    .lightbox-title {
+      flex: 1;
+      min-width: 0;
+      font-weight: 600;
+      font-size: 15px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lightbox-bar button {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+
+    .lightbox-bar button:hover,
+    .lightbox-bar button:focus-visible {
+      background: rgba(255, 255, 255, 0.24);
+    }
+
+    .lightbox-stage {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .lightbox-stage img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transform-origin: center;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-user-drag: none;
+      cursor: zoom-in;
+    }
+
+    .lightbox-stage img.zoomed {
+      cursor: grab;
+    }
+
+    .lightbox-hint {
+      padding: 10px 16px 14px;
+      text-align: center;
+      color: #c4c8d4;
+      font-size: 13px;
+    }
+
+    .resume-notice {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 12px 12px 16px;
+      margin-bottom: 24px;
+      border: 1px solid var(--accent-line);
+      border-radius: 12px;
+      background: var(--accent-soft);
+      color: var(--accent-hover);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .resume-notice[hidden] {
+      display: none;
+    }
+
+    .resume-notice .nav-btn {
+      padding: 8px 14px;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    #statusMessage,
+    #raffleMessage {
+      display: none;
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    .success {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      display: block !important;
+    }
+
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      display: block !important;
+    }
+
+    /* Completion page & raffle */
+
+    #surveyForm[hidden],
+    .completion[hidden],
+    .raffle-card[hidden],
+    .raffle-done[hidden] {
+      display: none;
+    }
+
+    .completion {
+      text-align: center;
+      padding: 8px 0 4px;
+    }
+
+    .completion-icon {
+      width: 76px;
+      height: 76px;
+      margin: 4px auto 22px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: completion-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+    }
+
+    .completion-icon svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    @keyframes completion-pop {
+      from { transform: scale(0.6); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .completion-icon {
+        animation: none;
+      }
+    }
+
+    .completion-title {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .completion-text {
+      max-width: 460px;
+      margin: 0 auto 28px;
+      color: var(--text-muted);
+    }
+
+    .raffle-card {
+      max-width: 480px;
+      margin: 0 auto 24px;
+      padding: 26px;
+      text-align: left;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface-alt);
+    }
+
+    .raffle-card h3 {
+      margin: 0 0 6px;
+      font-size: 17px;
+    }
+
+    .raffle-card p.subtitle {
+      margin-bottom: 18px;
+    }
+
+    .raffle-card p.subtitle strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .raffle-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      background: #eceef3;
+    }
+
+    .raffle-option {
+      position: relative;
+      margin: 0;
+      padding: 9px 12px;
+      border-radius: 9px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease,
+        box-shadow 0.15s ease;
+    }
+
+    .raffle-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .raffle-option:has(input:checked) {
+      background: var(--surface);
+      color: var(--text-main);
+      box-shadow: 0 1px 3px rgba(17, 24, 39, 0.1);
+    }
+
+    .raffle-option:has(input:focus-visible) {
+      box-shadow: 0 0 0 3px var(--accent-line);
+    }
+
+    .raffle-card .submit-btn {
+      width: 100%;
+    }
+
+    .link-btn {
+      display: block;
+      margin: 10px auto 0;
+      padding: 6px 10px;
+      border: none;
+      background: none;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+
+    .link-btn:hover {
+      color: var(--text-main);
+    }
+
+    .raffle-done {
+      max-width: 480px;
+      margin: 0 auto 24px;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-alt);
+      color: var(--text-body);
+      font-weight: 500;
+    }
+
+    .raffle-done.entered {
+      border-color: #a7f3d0;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        margin: 12px auto;
+        padding: 0 10px;
+      }
+
+      .card {
+        padding: 24px 18px;
+        border-radius: 16px;
+      }
+
+      h1 {
+        font-size: 23px;
+      }
+
+      h2 {
+        font-size: 19px;
+      }
+
+      fieldset {
+        padding: 18px 14px 4px;
+      }
+
+      .checkbox-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .checkbox-grid:has(.space-option) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .zoom-btn {
+        top: 12px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+      }
+
+      .navigation-buttons {
+        flex-wrap: wrap;
+      }
+
+      .nav-btn,
+      .navigation-buttons .submit-btn {
+        flex: 1;
+        padding: 13px 14px;
+      }
+
+      .likert-table {
+        font-size: 12.5px;
+        border-radius: 12px;
+      }
+
+      .likert-table th,
+      .likert-table td {
+        padding: 8px 3px;
+      }
+
+      .likert-table th.statement-col,
+      .likert-table td:first-child {
+        padding-left: 12px;
+      }
+
+      .likert-table th.statement-col {
+        width: 46%;
+        font-size: 13px;
+      }
+
+      .likert-table th:last-child,
+      .likert-table td:last-child {
+        padding-right: 10px;
+      }
+
+      /* Too narrow for word labels on phones; the numbers stay */
+      .likert-table thead th:not(.statement-col)::after {
+        display: none;
+      }
+
+      .likert-table td.scale-col {
+        width: 10.8%;
+      }
+
+      .likert-table td.scale-col input {
+        width: 20px;
+        height: 20px;
+      }
+
+      .space-card-wrapper {
+        padding: 14px;
+      }
+
+      #pageIndicator {
+        order: -1;
+        flex-basis: 100%;
+      }
+
+      .raffle-card {
+        padding: 18px;
+      }
+
+      .completion-title {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="card">
+
+  <h1>Regine Velasquez The Finale Concert : Threshold Spaces Concert Assessment</h1>
+  <p class="subtitle">
+    
+
+If you joined the crowd during the Regine Velasquez 3-Day Concert, your pre-show journey matters. This quick survey explores how you experienced the venue—from arriving and queueing in exterior plazas to exploring the main lobbies, grab-and-go food areas, and hallways.
+  </p>
+
+  <form id="surveyForm" novalidate>
+
+    <div class="resume-notice" id="resumeNotice" hidden>
+      <span>Welcome back! Your previous answers have been restored.</span>
+      <button type="button" class="nav-btn" id="startOverBtn">
+        Start over
+      </button>
+    </div>
+
+    <!-- PAGE 1: PRELIMINARY INFORMATION AND DEMOGRAPHICS -->
+
+    <div class="survey-page active" id="page-preliminary">
+
+      <h2 class="page-heading">Preliminary Information</h2>
+
+      <p class="subtitle">
+        Your answers are saved as you go, so you can continue later on
+        this device. Answers from unfinished surveys may still be recorded.
+      </p>
+
+      <fieldset>
+        <legend>Preliminary Information</legend>
+
+        <div class="form-group">
+          <label for="prelim_name">Name (Optional):</label>
+          <input type="text" id="prelim_name" name="prelim_name"
+                 placeholder="Your name">
+        </div>
+
+        <div class="form-group">
+          <label for="prelim_email">Email (Optional):</label>
+          <input type="email" id="prelim_email" name="prelim_email"
+                 placeholder="name@example.com">
+        </div>
+
+        <div class="form-group">
+          <label for="prelim_arrival_time">
+            Arrival time at the venue (before the show starts):
+          </label>
+          <select id="prelim_arrival_time" name="prelim_arrival_time" required>
+            <option value="">-- Select Arrival Time --</option>
+            <option value="< 30 min">&lt; 30 min</option>
+            <option value="30-59 min">30-59 min</option>
+            <option value="1-2 hrs">1-2 hrs</option>
+            <option value="2-4 hrs">2-4 hrs</option>
+            <option value="> 4 hrs">&gt; 4 hrs</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="prelim_venue_frequency">
+            How many times have you attended a concert in this venue?
+          </label>
+          <select id="prelim_venue_frequency"
+                  name="prelim_venue_frequency" required>
+            <option value="">-- Select Frequency --</option>
+            <option value="First time">First time</option>
+            <option value="2-4">2-4</option>
+            <option value="5+">5+</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="prelim_ticket_class">Ticket class:</label>
+          <select id="prelim_ticket_class"
+                  name="prelim_ticket_class" required>
+            <option value="">-- Select Ticket Class --</option>
+            <option value="VIP Standing (including PIT A/B)">
+              VIP Standing (including PIT A/B)
+            </option>
+            <option value="VIP Seated">VIP Seated</option>
+            <option value="Lower Box (Premium and Regular)">
+              Lower Box (Premium and Regular)
+            </option>
+            <option value="Upper Box">Upper Box</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Part 1: Demographics</legend>
+
+        <div class="form-group">
+          <label for="demo_age">Age:</label>
+          <select id="demo_age" name="demo_age" required>
+            <option value="">-- Select Age Group --</option>
+            <option value="17 years old and below">17 years old and below</option>
+            <option value="18-25 years old">18-25 years old</option>
+            <option value="26-45 years old">26-45 years old</option>
+            <option value="46+ years old">46+ years old</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="demo_gender">Gender:</label>
+          <select id="demo_gender" name="demo_gender" required>
+            <option value="">-- Select Gender --</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="LGBTQIA+">LGBTQIA+</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="demo_origin">Place of Origin (City / Province):</label>
+          <input type="text" id="demo_origin" name="demo_origin"
+                 placeholder="e.g. Quezon City, Cebu, Pampanga" required>
+        </div>
+      </fieldset>
+
+    </div>
+
+    <!-- PAGE 2: SPACES ENCOUNTERED -->
+
+    <div class="survey-page" id="page-spaces">
+
+      <h2 class="page-heading">Spaces Encountered</h2>
+
+      <p>
+        Select all the spaces you encountered during your concert visit.
+        You will evaluate each selected space on a separate page.
+        Tap the magnifier on a photo to see it larger.
+      </p>
+
+      <fieldset>
+        <legend>2. Choose the Spaces You've Encountered</legend>
+
+        <label><strong>2.1 Exterior Spaces:</strong></label>
+
+        <div class="checkbox-grid">
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="ext_coral_blue">
+            Coral Way Blue Entrance
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="ext_stairs">
+            Exterior Stairs
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="ext_marina_green">
+            Marina Way - Green Entrance
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="ext_plaza">
+            Open Plaza
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="ext_queue_platinum_vip">
+            Queuing (Platinum and VIP)
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="ext_queue_vip_sro">
+            Queuing (VIP SRO)
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="ext_shaded">
+            Shaded Area
+          </label>
+        </div>
+
+        <br>
+
+        <label><strong>2.2 Interior Spaces:</strong></label>
+
+        <div class="checkbox-grid">
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="int_coral_lobby">
+            Coral Main Lobby
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="int_food">
+            Food Stalls
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="int_ga_hallway">
+            General Admission Hallway
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="int_lowerbox_hallway">
+            Lower Box Hallway
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="int_marina_lobby">
+            Marina Main Lobby
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="int_stairs">
+            Stairs
+          </label>
+
+          <label class="checkbox-item">
+            <input type="checkbox" name="spaces_encountered" value="int_upperbox_hallway">
+            Upper Box Hallway
+          </label>
+        </div>
+      </fieldset>
+
+    </div>
+
+    <!-- PAGES 3 ONWARD: GENERATED SPACE EVALUATIONS -->
+
+    <div id="dynamicSpacesContainer"></div>
+
+    <!-- FINAL PAGE: GENERAL FAN SATISFACTION & CONCERT JOURNEY -->
+
+    <div class="survey-page" id="page-general"></div>
+
+    <!-- NAVIGATION -->
+
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="progress-info">
+      <span id="pageLabel">Preliminary Information</span>
+      <span id="pageIndicator">Page 1</span>
+    </div>
+
+    <div class="navigation-buttons">
+
+      <button type="button" class="nav-btn" id="backBtn" hidden>
+        Back
+      </button>
+
+      <button type="button" class="nav-btn" id="nextBtn">
+        Next
+      </button>
+
+      <button type="submit" class="submit-btn" id="submitBtn" hidden>
+        Submit Assessment
+      </button>
+
+    </div>
+
+    <div id="statusMessage" role="status" aria-live="polite"></div>
+
+  </form>
+
+  <!-- COMPLETION PAGE & RAFFLE ENTRY -->
+
+  <div class="completion" id="completionScreen" hidden>
+
+    <div class="completion-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12.5l4.5 4.5L19 7.5"/>
+      </svg>
+    </div>
+
+    <h2 class="completion-title">Congratulations!</h2>
+
+    <p class="completion-text">
+      You've completed the Threshold Spaces Concert Assessment.
+      Thank you for sharing your experience with us.
+    </p>
+
+    <div class="raffle-card" id="raffleCard">
+      <h3>Join the raffle</h3>
+
+      <p class="subtitle">
+        Leave your email or Facebook profile and this survey will count as
+        <strong>1 raffle entry</strong>. We'll only use it to contact you
+        if you win.
+      </p>
+
+      <form id="raffleForm" novalidate>
+        <div class="raffle-toggle" role="radiogroup" aria-label="Contact method">
+          <label class="raffle-option">
+            <input type="radio" name="raffle_type" value="email" checked>
+            Email
+          </label>
+
+          <label class="raffle-option">
+            <input type="radio" name="raffle_type" value="facebook">
+            Facebook
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="raffle_contact" id="raffleContactLabel">
+            Email address
+          </label>
+          <input type="email" id="raffle_contact" name="raffle_contact"
+                 placeholder="name@example.com" autocomplete="email" required>
+        </div>
+
+        <button type="submit" class="submit-btn" id="raffleSubmitBtn">
+          Enter the raffle
+        </button>
+
+        <button type="button" class="link-btn" id="raffleSkipBtn">
+          No thanks
+        </button>
+
+        <div id="raffleMessage" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+
+    <div class="raffle-done" id="raffleDone" role="status" hidden></div>
+
+    <button type="button" class="nav-btn" id="newSurveyBtn">
+      Start a new survey
+    </button>
+
+  </div>
+</div>
+
+<!-- PHOTO ZOOM VIEWER -->
+
+<div class="lightbox" id="photoLightbox" role="dialog" aria-modal="true"
+     aria-labelledby="lightboxTitle" hidden>
+  <div class="lightbox-bar">
+    <span class="lightbox-title" id="lightboxTitle"></span>
+    <button type="button" id="lightboxZoomOut" aria-label="Zoom out">&minus;</button>
+    <button type="button" id="lightboxZoomIn" aria-label="Zoom in">+</button>
+    <button type="button" id="lightboxClose" aria-label="Close photo">&times;</button>
+  </div>
+  <div class="lightbox-stage" id="lightboxStage">
+    <img id="lightboxImg" alt="" draggable="false">
+  </div>
+  <div class="lightbox-hint">Pinch, double-tap or scroll to zoom. Drag to move around.</div>
+</div>
+
+<script>
+  // ============================================================
+  // SUPABASE CONFIGURATION
+  // ============================================================
+
+  const SUPABASE_URL = "https://ysyhlmzkuaxkgzzqmudq.supabase.co";
+  const SUPABASE_ANON_KEY =
+    "sb_publishable_ADLq-fJz_zsxAF4QAoWNog_OrHnnbUV";
+
+  const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+  // ============================================================
+  // SPACE CONFIGURATION
+  // ============================================================
+
+  const SPACE_CONFIG = {
+    ext_coral_blue: {
+      label: "Coral Way Blue Entrance (Exterior)",
+      set: "set1"
+    },
+    ext_stairs: {
+      label: "Stairs (Exterior)",
+      set: "set1"
+    },
+    ext_marina_green: {
+      label: "Marina Way - Green Entrance (Exterior)",
+      set: "set1"
+    },
+    ext_plaza: {
+      label: "Open Plaza (Exterior)",
+      set: "set1"
+    },
+    ext_queue_platinum_vip: {
+      label: "Queuing - Platinum and VIP (Exterior)",
+      set: "set1"
+    },
+    ext_queue_vip_sro: {
+      label: "Queuing - VIP SRO (Exterior)",
+      set: "set1"
+    },
+    ext_shaded: {
+      label: "Shaded Area (Exterior)",
+      set: "set1"
+    },
+    int_coral_lobby: {
+      label: "Coral Main Lobby (Interior)",
+      set: "set2"
+    },
+    int_food: {
+      label: "Food Stalls (Interior)",
+      set: "set2"
+    },
+    int_ga_hallway: {
+      label: "General Admission Hallway (Interior)",
+      set: "set2"
+    },
+    int_lowerbox_hallway: {
+      label: "Lower Box Hallway (Interior)",
+      set: "set2"
+    },
+    int_marina_lobby: {
+      label: "Marina Main Lobby (Interior)",
+      set: "set2"
+    },
+    int_stairs: {
+      label: "Stairs (Interior)",
+      set: "set2"
+    },
+    int_upperbox_hallway: {
+      label: "Upper Box Hallway (Interior)",
+      set: "set2"
+    }
+  };
+
+  // ============================================================
+  // SPACE IMAGES
+  // ============================================================
+
+  // Put an image path or URL for each space here
+  // (e.g. "images/open-plazas.jpg"). Empty = placeholder.
+const SPACE_IMAGES = {
+    ext_coral_blue: "images/Coral_Way_Blue_Entrance.jpg",
+    ext_stairs: "images/Exterior_StairsHEIC.jpg",
+    ext_marina_green: "images/Marina_Way_-_Green_Entrance.jpg",
+    ext_plaza: "images/Open_Plaza.jpg",
+    ext_queue_platinum_vip: "images/Queuing_(Platinum_and_VIP).jpg",
+    ext_queue_vip_sro: "images/Queuing_(VIP_SRO).jpg",
+    ext_shaded: "images/Shaded_Area.jpg",
+    int_coral_lobby: "images/Coral_Main_Lobby.jpg",
+    int_food: "images/Food_Stalls.jpg",
+    int_ga_hallway: "images/General_Admission_Hallway.jpg",
+    int_lowerbox_hallway: "images/Lower_Box_Hallway.jpg",
+    int_marina_lobby: "images/Marina_Main_Lobby.jpg",
+    int_stairs: "images/Stairs.jpg",
+    int_upperbox_hallway: "images/Upper_Box_Hallway.jpg"
+  };
+
+  function placeholderImage(label) {
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="800" height="450">
+        <rect width="100%" height="100%" fill="#e2e8f0"/>
+        <text x="50%" y="50%" font-family="sans-serif" font-size="36"
+              fill="#64748b" text-anchor="middle" dominant-baseline="middle">
+          ${escapeHTML(label)}
+        </text>
+      </svg>
+    `;
+
+    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+  }
+
+  function getSpaceImage(spaceKey) {
+    const config = SPACE_CONFIG[spaceKey];
+    return SPACE_IMAGES[spaceKey] || placeholderImage(config.label);
+  }
+
+  // Add an image to each checkbox on the Spaces Encountered page.
+  function renderSpaceThumbnails() {
+    document.querySelectorAll(
+      'input[name="spaces_encountered"]'
+    ).forEach(checkbox => {
+      const config = SPACE_CONFIG[checkbox.value];
+      const label = checkbox.closest("label");
+
+      if (!config || !label) return;
+
+      const img = document.createElement("img");
+      img.className = "space-thumb";
+      img.src = getSpaceImage(checkbox.value);
+      img.alt = config.label;
+      img.loading = "lazy";
+
+      const zoomBtn = document.createElement("button");
+      zoomBtn.type = "button";
+      zoomBtn.className = "zoom-btn";
+      zoomBtn.setAttribute("aria-label", `Zoom photo of ${config.label}`);
+      zoomBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/>
+        </svg>
+      `;
+
+      // Open the zoom viewer without ticking the checkbox.
+      zoomBtn.addEventListener("click", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        openLightbox(img.src, config.label);
+      });
+
+      label.classList.add("space-option");
+      label.prepend(img, zoomBtn);
+    });
+  }
+
+  // ============================================================
+  // PHOTO ZOOM VIEWER
+  // ============================================================
+
+  const lightbox = document.getElementById("photoLightbox");
+  const lightboxStage = document.getElementById("lightboxStage");
+  const lightboxImg = document.getElementById("lightboxImg");
+  const lightboxTitle = document.getElementById("lightboxTitle");
+
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 4;
+
+  let zoom = { scale: 1, x: 0, y: 0 };
+  let lastFocused = null;
+
+  // Draw the photo, keeping it from being dragged off screen.
+  function applyZoom() {
+    const maxX = (lightboxImg.offsetWidth * (zoom.scale - 1)) / 2;
+    const maxY = (lightboxImg.offsetHeight * (zoom.scale - 1)) / 2;
+
+    zoom.x = Math.max(-maxX, Math.min(maxX, zoom.x));
+    zoom.y = Math.max(-maxY, Math.min(maxY, zoom.y));
+
+    lightboxImg.style.transform =
+      `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.scale})`;
+    lightboxImg.classList.toggle("zoomed", zoom.scale > 1);
+  }
+
+  function clampScale(scale) {
+    return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale));
+  }
+
+  // Zoom while keeping the point (fx, fy) under the finger/cursor in place.
+  // Points are measured from the centre of the viewer.
+  function setZoom(scale, fx = 0, fy = 0) {
+    let next = clampScale(scale);
+
+    // Snap back to normal size when nearly zoomed out.
+    if (next < zoom.scale && next < 1.2) next = MIN_ZOOM;
+
+    const ratio = next / zoom.scale;
+
+    zoom.x = fx - (fx - zoom.x) * ratio;
+    zoom.y = fy - (fy - zoom.y) * ratio;
+    zoom.scale = next;
+    applyZoom();
+  }
+
+  function stagePoint(e) {
+    const rect = lightboxStage.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left - rect.width / 2,
+      y: e.clientY - rect.top - rect.height / 2
+    };
+  }
+
+  function openLightbox(src, title) {
+    lastFocused = document.activeElement;
+
+    lightboxImg.src = src;
+    lightboxImg.alt = title;
+    lightboxTitle.textContent = title;
+
+    lightbox.hidden = false;
+    document.body.classList.add("lightbox-open");
+
+    zoom = { scale: 1, x: 0, y: 0 };
+    applyZoom();
+
+    document.getElementById("lightboxClose").focus();
+  }
+
+  function closeLightbox() {
+    lightbox.hidden = true;
+    document.body.classList.remove("lightbox-open");
+    pointers.clear();
+    gesture = null;
+
+    if (lastFocused) lastFocused.focus({ preventScroll: true });
+  }
+
+  // Touch & mouse: one finger drags, two fingers pinch, double-tap zooms.
+  const pointers = new Map();
+  let gesture = null;
+  let moved = false;
+  let lastTap = 0;
+
+  function startGesture() {
+    const pts = Array.from(pointers.values());
+
+    if (pts.length >= 2) {
+      const [a, b] = pts;
+      gesture = {
+        type: "pinch",
+        dist: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        scale: zoom.scale,
+        x: zoom.x,
+        y: zoom.y
+      };
+    } else if (pts.length === 1) {
+      gesture = { type: "pan", start: pts[0], x: zoom.x, y: zoom.y };
+    } else {
+      gesture = null;
+    }
+  }
+
+  lightboxStage.addEventListener("pointerdown", e => {
+    try {
+      lightboxStage.setPointerCapture(e.pointerId);
+    } catch (err) {}
+
+    pointers.set(e.pointerId, stagePoint(e));
+    if (pointers.size === 1) moved = false;
+    startGesture();
+  });
+
+  lightboxStage.addEventListener("pointermove", e => {
+    if (!pointers.has(e.pointerId) || !gesture) return;
+
+    pointers.set(e.pointerId, stagePoint(e));
+    const pts = Array.from(pointers.values());
+
+    if (gesture.type === "pinch" && pts.length >= 2) {
+      const [a, b] = pts;
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const scale = clampScale(gesture.scale * dist / gesture.dist);
+
+      zoom.x = mid.x - (gesture.mid.x - gesture.x) * scale / gesture.scale;
+      zoom.y = mid.y - (gesture.mid.y - gesture.y) * scale / gesture.scale;
+      zoom.scale = scale;
+      moved = true;
+      applyZoom();
+    } else if (gesture.type === "pan") {
+      const dx = pts[0].x - gesture.start.x;
+      const dy = pts[0].y - gesture.start.y;
+
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+
+      if (zoom.scale > 1) {
+        zoom.x = gesture.x + dx;
+        zoom.y = gesture.y + dy;
+        applyZoom();
+      }
+    }
+  });
+
+  function endPointer(e) {
+    if (!pointers.has(e.pointerId)) return;
+
+    const point = pointers.get(e.pointerId);
+    pointers.delete(e.pointerId);
+    startGesture();
+
+    if (pointers.size === 0 && zoom.scale > 1 && zoom.scale < 1.2) {
+      setZoom(1);
+    }
+
+    if (pointers.size > 0 || moved || e.type !== "pointerup") return;
+
+    const now = Date.now();
+
+    if (now - lastTap < 300) {
+      lastTap = 0;
+      setZoom(zoom.scale > 1 ? 1 : 2.5, point.x, point.y);
+      return;
+    }
+
+    lastTap = now;
+
+    // A tap on the dark area around the photo closes the viewer.
+    const rect = lightboxImg.getBoundingClientRect();
+    const onPhoto =
+      e.clientX >= rect.left && e.clientX <= rect.right &&
+      e.clientY >= rect.top && e.clientY <= rect.bottom;
+
+    if (!onPhoto && zoom.scale === 1) closeLightbox();
+  }
+
+  lightboxStage.addEventListener("pointerup", endPointer);
+  lightboxStage.addEventListener("pointercancel", endPointer);
+
+  lightboxStage.addEventListener("wheel", e => {
+    e.preventDefault();
+    const p = stagePoint(e);
+    setZoom(zoom.scale * Math.exp(-e.deltaY * 0.002), p.x, p.y);
+  }, { passive: false });
+
+  document.getElementById("lightboxZoomIn").addEventListener("click", () => {
+    setZoom(zoom.scale * 1.5);
+  });
+
+  document.getElementById("lightboxZoomOut").addEventListener("click", () => {
+    setZoom(zoom.scale / 1.5);
+  });
+
+  document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+
+  document.addEventListener("keydown", e => {
+    if (lightbox.hidden) return;
+
+    if (e.key === "Escape") {
+      closeLightbox();
+    } else if (e.key === "+" || e.key === "=") {
+      setZoom(zoom.scale * 1.5);
+    } else if (e.key === "-") {
+      setZoom(zoom.scale / 1.5);
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (!lightbox.hidden) applyZoom();
+  });
+
+  // ============================================================
+  // PHYSICAL ATTRIBUTE QUESTIONS
+  // ============================================================
+
+  const QUESTIONS_BY_SET = {
+    set1: [
+      {
+        cat: "PHYSICAL PERMEABILITY",
+        items: [
+          "Entrances and exits were easy to find.",
+          "Pathways allowed smooth movement.",
+          "The layout was easy to navigate.",
+          "The space handled large crowds well."
+        ]
+      },
+      {
+        cat: "HUMAN SCALE",
+        items: [
+          "The space felt comfortable in size.",
+          "Movement felt natural and easy.",
+          "The space felt inviting rather than intimidating.",
+          "The size of the space encouraged smooth and natural body movement."
+        ]
+      },
+      {
+        cat: "CLIMATIC RESPONSIVENESS",
+        items: [
+          "The area had enough shade.",
+          "It was protected from rain or heat.",
+          "The airflow was comfortable.",
+          "The temperature felt right.",
+          "The presence of trees, greenery, or shading elements improved comfort."
+        ]
+      },
+      {
+        cat: "RICHNESS OF EXPERIENCE",
+        items: [
+          "The space looked visually pleasing.",
+          "Lighting improved comfort and mood.",
+          "Seating areas or resting spots were well-integrated and inviting.",
+          "The space supported fan activities (chants, photos, etc.)."
+        ]
+      },
+      {
+        cat: "VISUAL PERMEABILITY",
+        items: [
+          "I could see where to go next.",
+          "I could recognize available activities or services.",
+          "I could anticipate what's beyond this space.",
+          "Signs and cues were visible from afar."
+        ]
+      }
+    ],
+
+    set2: [
+      {
+        cat: "PHYSICAL PERMEABILITY",
+        items: [
+          "Entrances and exits were easy to find.",
+          "Pathways allowed smooth movement.",
+          "The layout was easy to navigate.",
+          "The space handled large crowds well."
+        ]
+      },
+      {
+        cat: "HUMAN SCALE",
+        items: [
+          "The space felt comfortable in size.",
+          "Movement felt natural and easy.",
+          "The space felt inviting rather than intimidating.",
+          "The size of the space encouraged smooth and natural body movement."
+        ]
+      },
+      {
+        cat: "CLIMATIC RESPONSIVENESS",
+        items: [
+          "The area had enough shade.",
+          "It was protected from rain or heat.",
+          "The airflow was comfortable.",
+          "The temperature felt right."
+        ]
+      },
+      {
+        cat: "RICHNESS OF EXPERIENCE",
+        items: [
+          "The space looked visually pleasing.",
+          "Lighting improved comfort and mood.",
+          "Seating areas or resting spots were well-integrated and inviting.",
+          "The space supported fan activities (chants, photos, etc.)."
+        ]
+      },
+      {
+        cat: "VISUAL PERMEABILITY",
+        items: [
+          "I could see where to go next.",
+          "I could recognize available activities or services.",
+          "I could anticipate what's beyond this space.",
+          "Signs and cues were visible from afar."
+        ]
+      }
+    ]
+  };
+
+  // ============================================================
+  // LIKERT TABLE HELPER
+  // ============================================================
+
+  function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+  }
+
+  function makeLikertRow(statementText, fieldName) {
+    const safeName = escapeHTML(fieldName);
+
+    return `
+      <tr>
+        <td>${escapeHTML(statementText)}</td>
+        ${[1, 2, 3, 4, 5].map((value, index) => `
+          <td class="scale-col">
+            <input
+              type="radio"
+              name="${safeName}"
+              value="${value}"
+              ${index === 0 ? "required" : ""}
+              aria-label="${escapeHTML(statementText)}: ${value}"
+            >
+          </td>
+        `).join("")}
+      </tr>
+    `;
+  }
+
+  function makeLikertTable(title, groups, namePrefix) {
+    let questionNumber = 1;
+    let rows = "";
+
+    groups.forEach(group => {
+      rows += `
+        <tr>
+          <td colspan="6" class="likert-cat-header">
+            ${escapeHTML(group.cat)}
+          </td>
+        </tr>
+      `;
+
+      group.items.forEach(statement => {
+        rows += makeLikertRow(
+          `${questionNumber}. ${statement}`,
+          `${namePrefix}_q${questionNumber}`
+        );
+
+        questionNumber++;
+      });
+    });
+
+    return `
+      <p><strong>${title}</strong></p>
+      <table class="likert-table">
+        <thead>
+          <tr>
+            <th class="statement-col">Statement</th>
+            <th>1</th>
+            <th>2</th>
+            <th>3</th>
+            <th>4</th>
+            <th>5</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  // ============================================================
+  // GENERATE ONE EVALUATION PAGE PER SELECTED SPACE
+  // ============================================================
+
+  function renderSpaces() {
+    const container = document.getElementById("dynamicSpacesContainer");
+
+    const checkedBoxes = Array.from(
+      document.querySelectorAll(
+        'input[name="spaces_encountered"]:checked'
+      )
+    );
+
+    // Keep answers already given so regenerating pages doesn't wipe them.
+    const previousAnswers = collectResponses();
+
+    // Remove old evaluation pages before regenerating them.
+    container.innerHTML = "";
+
+    checkedBoxes.forEach((checkbox, index) => {
+      const spaceKey = checkbox.value;
+      const config = SPACE_CONFIG[spaceKey];
+
+      if (!config) return;
+
+      const setGroups = QUESTIONS_BY_SET[config.set];
+
+      const page = document.createElement("div");
+      page.className = "survey-page evaluation-page";
+      page.id = `page-evaluation-${spaceKey}`;
+
+      page.innerHTML = `
+        <h2 class="page-heading">
+          Space ${index + 1}: ${escapeHTML(config.label)}
+        </h2>
+
+        <p class="subtitle">
+          Evaluate this space based on your own experience.
+          Rate each statement before proceeding to the next space.
+        </p>
+
+        <div class="space-card-wrapper">
+
+          <img
+            class="space-hero"
+            src="${getSpaceImage(spaceKey)}"
+            alt="${escapeHTML(config.label)}"
+          >
+
+          <!-- PART 2: PHYSICAL ATTRIBUTES -->
+
+          ${makeLikertTable(
+            "Part 2: Physical Attributes Ratings (1 = Strongly Disagree, 5 = Strongly Agree)",
+            setGroups,
+            `attr_${spaceKey}`
+          )}
+
+          <!-- PART 3: FAN ACTIVITIES -->
+
+          <p><strong>Part 3: Fan Activities in This Space</strong></p>
+
+          <div class="form-group">
+            <label>3.1 Activities you did here (select all that apply):</label>
+
+            <div class="checkbox-grid">
+              ${[
+                ["Waiting", "Waiting"],
+                ["Queueing", "Queueing"],
+                ["Buying merchandise/food/drinks", "Buying merch/food/drinks"],
+                ["Meeting/bonding with friends", "Meeting / bonding with fans"],
+                ["Fan projects", "Fan projects (chants, banners)"],
+                ["Resting", "Resting (sitting, shade)"],
+                ["Taking photos/videos", "Taking photos / videos"],
+                ["Exploring", "Exploring"]
+              ].map(([value, label]) => `
+                <label class="checkbox-item">
+                  <input
+                    type="checkbox"
+                    name="act_${spaceKey}"
+                    value="${escapeHTML(value)}"
+                  >
+                  ${escapeHTML(label)}
+                </label>
+              `).join("")}
+            </div>
+
+            <div class="form-group" style="margin-top: 12px;">
+              <label for="act_${spaceKey}_other">
+                Other activities (optional):
+              </label>
+              <input
+                type="text"
+                id="act_${spaceKey}_other"
+                name="act_${spaceKey}_other"
+                placeholder="Others (please specify)"
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="duration_${spaceKey}">
+              3.2 Approximately how long did you stay in this place?
+            </label>
+            <select id="duration_${spaceKey}"
+                    name="duration_${spaceKey}" required>
+              <option value="">-- Select Duration --</option>
+              <option value="Less than 10 mins">Less than 10 mins</option>
+              <option value="10-30 mins">10-30 mins</option>
+              <option value="30-60 mins">30-60 mins</option>
+              <option value="More than one hour">More than one hour</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback_enjoyed_${spaceKey}">
+              3.3 What did you find enjoyable or memorable while staying here?
+            </label>
+            <textarea
+              id="feedback_enjoyed_${spaceKey}"
+              name="feedback_enjoyed_${spaceKey}"
+              rows="3"
+              placeholder="Share your experience (optional)"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback_challenges_${spaceKey}">
+              What challenges or difficulties did you experience in this space?
+            </label>
+            <textarea
+              id="feedback_challenges_${spaceKey}"
+              name="feedback_challenges_${spaceKey}"
+              rows="3"
+              placeholder="Describe any challenges (optional)"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback_improvements_${spaceKey}">
+              What design improvements would help?
+            </label>
+            <textarea
+              id="feedback_improvements_${spaceKey}"
+              name="feedback_improvements_${spaceKey}"
+              rows="3"
+              placeholder="Seating, shade, signage, circulation, etc. (optional)"
+            ></textarea>
+          </div>
+
+          <!-- PART 4: BEHAVIORAL AND EMOTIONAL OUTCOMES -->
+
+          <p>
+            <strong>Part 4: Fan Behavioral Outcomes & Emotional Buildup</strong>
+            <br>
+            <small>1 = Strongly Disagree, 5 = Strongly Agree</small>
+          </p>
+
+          <table class="likert-table">
+            <thead>
+              <tr>
+                <th class="statement-col">Statement</th>
+                <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="6" class="likert-cat-header">
+                  Physical Comfort and Safety
+                </td>
+              </tr>
+
+              ${makeLikertRow(
+                "1. Experienced stress or discomfort",
+                `beh_${spaceKey}_stress`
+              )}
+
+              ${makeLikertRow(
+                "2. Looked for shaded or less crowded area",
+                `beh_${spaceKey}_lookshade`
+              )}
+
+              ${makeLikertRow(
+                "3. I experienced confusion or disorientation while in the space",
+                `beh_${spaceKey}_confused`
+              )}
+
+              <tr>
+                <td colspan="6" class="likert-cat-header">Organization</td>
+              </tr>
+
+              ${makeLikertRow(
+                "4. Saw people cutting lines or breaking order, which affected my experience",
+                `beh_${spaceKey}_cutting`
+              )}
+
+              <tr>
+                <td colspan="6" class="likert-cat-header">Social Interaction</td>
+              </tr>
+
+              ${makeLikertRow(
+                "5. Interacted socially with fans",
+                `beh_${spaceKey}_social`
+              )}
+
+              ${makeLikertRow(
+                "6. Felt a strong sense of belonging with fellow fans",
+                `beh_${spaceKey}_belonging`
+              )}
+
+              ${makeLikertRow(
+                "7. Made new friends while waiting",
+                `beh_${spaceKey}_friends`
+              )}
+
+              <tr>
+                <td colspan="6" class="likert-cat-header">
+                  Emotional Building and Anticipation
+                </td>
+              </tr>
+
+              ${makeLikertRow(
+                "1. This space increased my excitement for the concert",
+                `emo_${spaceKey}_excitement`
+              )}
+
+              ${makeLikertRow(
+                "2. This space helped build a concert mood",
+                `emo_${spaceKey}_mood`
+              )}
+
+              ${makeLikertRow(
+                "3. I felt part of a shared fan community here",
+                `emo_${spaceKey}_community`
+              )}
+
+              ${makeLikertRow(
+                "4. I felt bored and impatient",
+                `emo_${spaceKey}_bored`
+              )}
+
+              ${makeLikertRow(
+                "5. I felt that my mood shifted to concert mode",
+                `emo_${spaceKey}_shift`
+              )}
+            </tbody>
+          </table>
+
+        </div>
+      `;
+
+      container.appendChild(page);
+    });
+
+    fillFields(previousAnswers);
+    updateNavigation();
+  }
+
+  // ============================================================
+  // GENERAL SECTION 3 (SHOWN ONCE, AFTER ALL SPACE EVALUATIONS)
+  // ============================================================
+
+  function renderGeneralSection() {
+    document.getElementById("page-general").innerHTML = `
+      <h2 class="page-heading">
+        Section 3: Fan Satisfaction & Concert Journey
+      </h2>
+
+      <p class="subtitle">
+        Answer these questions based on your overall experience
+        across all the spaces you encountered.
+      </p>
+
+      <div class="space-card-wrapper">
+
+        ${makeLikertTable(
+          "3.1 Fan Satisfaction (1 = Strongly Disagree, 5 = Strongly Agree)",
+          [{
+            cat: "FAN SATISFACTION",
+            items: [
+              "I was satisfied with my experience in the venue's spaces overall.",
+              "I was satisfied with how organized and efficient the spaces were.",
+              "The spaces positively shaped my anticipation before the concert began.",
+              "The design of the spaces made the waiting time more bearable and memorable."
+            ]
+          }],
+          "sat"
+        )}
+
+        ${makeLikertTable(
+          "3.2 Overall Concert Journey (1 = Very Poor, 5 = Excellent)",
+          [{
+            cat: "CONCERT JOURNEY",
+            items: [
+              "Pre-event experience in the venue's spaces",
+              "Contribution to overall concert experience",
+              "Likelihood to revisit these spaces in future concerts"
+            ]
+          }],
+          "journey"
+        )}
+
+        <div class="form-group">
+          <label for="journey_most_memorable">
+            3.3 What was the most memorable or enjoyable part of your overall experience?
+          </label>
+          <textarea
+            id="journey_most_memorable"
+            name="journey_most_memorable"
+            rows="3"
+            placeholder="Share your experience (optional)"
+          ></textarea>
+        </div>
+
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // SAVING PROGRESS & RESUMING
+  // ============================================================
+
+  const STORAGE_KEY = "threshold_survey_progress";
+
+  let submissionId = null;
+  let hasUnsavedChanges = false;
+  let saveQueue = Promise.resolve();
+
+  function newSubmissionId() {
+    return (
+      "sub_" +
+      Date.now() +
+      "_" +
+      Math.random().toString(36).substring(2, 7)
+    );
+  }
+
+  // Gather every answer currently in the form.
+  function collectResponses() {
+    const formData = new FormData(document.getElementById("surveyForm"));
+    const responsesData = {};
+
+    const checkedSpaces = Array.from(
+      document.querySelectorAll(
+        'input[name="spaces_encountered"]:checked'
+      )
+    ).map(checkbox => checkbox.value);
+
+    // Save the selected spaces as an array.
+    responsesData.spaces_encountered = checkedSpaces;
+
+    // Save selected activities as arrays for each space.
+    checkedSpaces.forEach(spaceKey => {
+      responsesData[`act_${spaceKey}`] =
+        formData.getAll(`act_${spaceKey}`);
+    });
+
+    // Collect the remaining fields, including the "Other activities" text.
+    formData.forEach((value, key) => {
+      if (
+        key === "spaces_encountered" ||
+        /^act_(ext_coral_blue|ext_stairs|ext_marina_green|ext_plaza|ext_queue_platinum_vip|ext_queue_vip_sro|ext_shaded|int_coral_lobby|int_food|int_ga_hallway|int_lowerbox_hallway|int_marina_lobby|int_stairs|int_upperbox_hallway)$/.test(key)
+      ) {
+        return;
+      }
+
+      if (typeof value === "string" && value.trim() !== "") {
+        responsesData[key] = value.trim();
+      }
+    });
+
+    return responsesData;
+  }
+
+  // Put saved answers back into the form (except the space checkboxes).
+  function fillFields(responses) {
+    const form = document.getElementById("surveyForm");
+
+    Object.entries(responses).forEach(([name, value]) => {
+      if (name === "spaces_encountered") return;
+
+      const values = Array.isArray(value) ? value : [value];
+
+      form.querySelectorAll(`[name="${CSS.escape(name)}"]`)
+        .forEach(field => {
+          if (field.type === "checkbox" || field.type === "radio") {
+            field.checked = values.includes(field.value);
+          } else {
+            field.value = values[0];
+          }
+        });
+    });
+  }
+
+  // Browser copy, used to resume on the same device.
+  function storeLocally() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        id: submissionId,
+        pageIndex: currentPageIndex,
+        responses: collectResponses()
+      }));
+    } catch (err) {
+      // Storage blocked (e.g. private mode): resuming just won't work.
+    }
+  }
+
+  function readLocal() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY));
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function clearLocal() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (err) {}
+  }
+
+  // Saves run one after another so an older save never lands last.
+  function saveToSupabase(status) {
+    const payload = {
+      p_id: submissionId,
+      p_status: status,
+      p_responses: collectResponses()
+    };
+
+    hasUnsavedChanges = false;
+
+    const run = saveQueue.then(async () => {
+      const { error } = await supabaseClient.rpc(
+        "save_concert_survey",
+        payload
+      );
+
+      if (error) throw error;
+    });
+
+    saveQueue = run.catch(() => {});
+    return run;
+  }
+
+  function saveProgress() {
+    saveToSupabase("in_progress").catch(err => {
+      console.warn("Progress save failed:", err);
+    });
+  }
+
+  function restoreProgress() {
+    const saved = readLocal();
+
+    if (!saved || !saved.id) {
+      submissionId = newSubmissionId();
+      return;
+    }
+
+    submissionId = saved.id;
+    const responses = saved.responses || {};
+
+    // Tick the saved spaces first so their pages exist before filling them.
+    (responses.spaces_encountered || []).forEach(value => {
+      const checkbox = document.querySelector(
+        `input[name="spaces_encountered"][value="${CSS.escape(value)}"]`
+      );
+
+      if (checkbox) checkbox.checked = true;
+    });
+
+    renderSpaces();
+    fillFields(responses);
+
+    currentPageIndex = saved.pageIndex || 0;
+    document.getElementById("resumeNotice").hidden = false;
+  }
+
+  function startOver() {
+    clearLocal();
+
+    document.getElementById("surveyForm").reset();
+    document.getElementById("dynamicSpacesContainer").innerHTML = "";
+    document.getElementById("resumeNotice").hidden = true;
+
+    submissionId = newSubmissionId();
+    hasUnsavedChanges = false;
+    currentPageIndex = 0;
+    updateNavigation();
+  }
+
+  document.getElementById("startOverBtn").addEventListener("click", () => {
+    if (confirm("Clear your answers and start the survey over?")) {
+      startOver();
+    }
+  });
+
+  ["input", "change"].forEach(eventName => {
+    document.getElementById("surveyForm").addEventListener(eventName, () => {
+      hasUnsavedChanges = true;
+      storeLocally();
+    });
+  });
+
+  // Save when the respondent switches away or closes the tab.
+  document.addEventListener("visibilitychange", () => {
+    if (
+      document.visibilityState === "hidden" &&
+      hasUnsavedChanges &&
+      currentPageIndex > 0
+    ) {
+      saveProgress();
+    }
+  });
+
+  // ============================================================
+  // PAGE NAVIGATION
+  // ============================================================
+
+  let currentPageIndex = 0;
+
+  function getSurveyPages() {
+    return Array.from(
+      document.querySelectorAll(".survey-page")
+    );
+  }
+
+  function updateNavigation() {
+    const pages = getSurveyPages();
+
+    if (!pages.length) return;
+
+    currentPageIndex = Math.max(
+      0,
+      Math.min(currentPageIndex, pages.length - 1)
+    );
+
+    pages.forEach((page, index) => {
+      page.classList.toggle("active", index === currentPageIndex);
+    });
+
+    const backBtn = document.getElementById("backBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const indicator = document.getElementById("pageIndicator");
+    const pageLabel = document.getElementById("pageLabel");
+    const progressFill = document.getElementById("progressFill");
+
+    const currentPage = pages[currentPageIndex];
+    const isLastPage = currentPageIndex === pages.length - 1;
+
+    backBtn.hidden = currentPageIndex === 0;
+    nextBtn.hidden = isLastPage;
+    submitBtn.hidden = !isLastPage;
+
+    indicator.textContent =
+      `Page ${currentPageIndex + 1} of ${pages.length}`;
+
+    if (currentPage.id === "page-preliminary") {
+      pageLabel.textContent = "Preliminary Information & Demographics";
+    } else if (currentPage.id === "page-spaces") {
+      pageLabel.textContent = "Spaces Encountered";
+    } else {
+      const heading = currentPage.querySelector(".page-heading");
+      pageLabel.textContent = heading
+        ? heading.textContent
+        : "Space Evaluation";
+    }
+
+    progressFill.style.width =
+      `${((currentPageIndex + 1) / pages.length) * 100}%`;
+  }
+
+  // ============================================================
+  // VALIDATE THE CURRENT PAGE ONLY
+  // ============================================================
+
+  function validateCurrentPage() {
+    const pages = getSurveyPages();
+    const currentPage = pages[currentPageIndex];
+
+    if (!currentPage) return false;
+
+    if (currentPage.id === "page-spaces") {
+      const selectedSpaces = document.querySelectorAll(
+        'input[name="spaces_encountered"]:checked'
+      );
+
+      if (selectedSpaces.length === 0) {
+        alert("Please select at least one space you encountered.");
+        return false;
+      }
+    }
+
+    const requiredFields = Array.from(
+      currentPage.querySelectorAll("[required]")
+    );
+
+    for (const field of requiredFields) {
+      if (!field.checkValidity()) {
+        field.reportValidity();
+        field.focus();
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // NEXT
+  document.getElementById("nextBtn").addEventListener("click", () => {
+    if (!validateCurrentPage()) return;
+
+    const pages = getSurveyPages();
+    const currentPage = pages[currentPageIndex];
+
+    // Generate one evaluation page for every selected space.
+    if (currentPage.id === "page-spaces") {
+      renderSpaces();
+    }
+
+    const updatedPages = getSurveyPages();
+
+    if (currentPageIndex < updatedPages.length - 1) {
+      currentPageIndex++;
+    }
+
+    updateNavigation();
+
+    // Record the answers so far, even if the survey is never finished.
+    storeLocally();
+    saveProgress();
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+
+  // BACK
+  document.getElementById("backBtn").addEventListener("click", () => {
+    if (currentPageIndex > 0) {
+      currentPageIndex--;
+    }
+
+    updateNavigation();
+    storeLocally();
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+
+  // Update the selected-space list while on Page 2.
+  document.querySelectorAll(
+    'input[name="spaces_encountered"]'
+  ).forEach(checkbox => {
+    checkbox.addEventListener("change", () => {
+      const currentPage = getSurveyPages()[currentPageIndex];
+
+      if (currentPage && currentPage.id === "page-spaces") {
+        renderSpaces();
+      }
+    });
+  });
+
+  // ============================================================
+  // SUBMISSION TO SUPABASE
+  // ============================================================
+
+  document.getElementById("surveyForm").addEventListener(
+    "submit",
+    async function (e) {
+      e.preventDefault();
+
+      if (!validateCurrentPage()) return;
+
+      const submitBtn = document.getElementById("submitBtn");
+      const statusDiv = document.getElementById("statusMessage");
+
+      const checkedSpaces = Array.from(
+        document.querySelectorAll(
+          'input[name="spaces_encountered"]:checked'
+        )
+      ).map(checkbox => checkbox.value);
+
+      if (checkedSpaces.length === 0) {
+        alert("Please select at least one space before submitting.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting Assessment...";
+
+      statusDiv.className = "";
+      statusDiv.style.display = "none";
+      statusDiv.textContent = "";
+
+      try {
+        try {
+          // Marks this respondent's existing row as completed.
+          await saveToSupabase("completed");
+        } catch (saveError) {
+          // Fallback if the save_concert_survey function isn't set up yet.
+          console.warn("Save function failed, inserting instead:", saveError);
+
+          const { error } = await supabaseClient
+            .from("concert_survey")
+            .insert([
+              {
+                id: submissionId,
+                status: "completed",
+                responses: collectResponses()
+              }
+            ]);
+
+          if (error) throw error;
+        }
+
+        // Keep this submission's answers so a raffle entry can be added to it.
+        const finishedId = submissionId;
+        const finishedResponses = collectResponses();
+
+        // Reset the survey after a successful submission,
+        // with a fresh ID for the next respondent.
+        startOver();
+        showCompletion(finishedId, finishedResponses);
+
+      } catch (err) {
+        console.error("Submission failed:", err);
+
+        statusDiv.className = "error";
+        statusDiv.textContent =
+          "Submission failed: " +
+          (err.message || "Please check your connection and try again.");
+
+        statusDiv.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Assessment";
+      }
+    }
+  );
+
+  // ============================================================
+  // COMPLETION PAGE & RAFFLE ENTRY
+  // ============================================================
+
+  let completedSubmission = null;
+
+  const raffleForm = document.getElementById("raffleForm");
+  const raffleContact = document.getElementById("raffle_contact");
+  const raffleContactLabel = document.getElementById("raffleContactLabel");
+  const raffleMessage = document.getElementById("raffleMessage");
+
+  const RAFFLE_FIELDS = {
+    email: {
+      label: "Email address",
+      type: "email",
+      placeholder: "name@example.com",
+      autocomplete: "email"
+    },
+    facebook: {
+      label: "Facebook profile link or name",
+      type: "text",
+      placeholder: "facebook.com/yourname",
+      autocomplete: "off"
+    }
+  };
+
+  function setRaffleType(type) {
+    const field = RAFFLE_FIELDS[type];
+
+    raffleContactLabel.textContent = field.label;
+    raffleContact.type = field.type;
+    raffleContact.placeholder = field.placeholder;
+    raffleContact.autocomplete = field.autocomplete;
+    raffleContact.value = "";
+
+    raffleMessage.className = "";
+    raffleMessage.textContent = "";
+  }
+
+  function showRaffleDone(text, entered) {
+    const done = document.getElementById("raffleDone");
+
+    done.textContent = text;
+    done.classList.toggle("entered", entered);
+    done.hidden = false;
+    document.getElementById("raffleCard").hidden = true;
+  }
+
+  function showCompletion(id, responses) {
+    completedSubmission = { id, responses };
+
+    raffleForm.reset();
+    setRaffleType("email");
+
+    // Pre-fill the email given on the first page, if any.
+    raffleContact.value = responses.prelim_email || "";
+
+    document.getElementById("raffleCard").hidden = false;
+    document.getElementById("raffleDone").hidden = true;
+    document.getElementById("surveyForm").hidden = true;
+    document.getElementById("completionScreen").hidden = false;
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+  raffleForm.addEventListener("change", e => {
+    if (e.target.name === "raffle_type") {
+      setRaffleType(e.target.value);
+      raffleContact.focus();
+    }
+  });
+
+  raffleForm.addEventListener("submit", async e => {
+    e.preventDefault();
+
+    if (!completedSubmission) return;
+
+    const type = raffleForm.querySelector(
+      'input[name="raffle_type"]:checked'
+    ).value;
+    const contact = raffleContact.value.trim();
+    raffleContact.value = contact;
+
+    if (
+      !contact ||
+      !raffleContact.checkValidity() ||
+      (type === "facebook" && contact.length < 3)
+    ) {
+      raffleMessage.className = "error";
+      raffleMessage.textContent = type === "email"
+        ? "Please enter a valid email address."
+        : "Please enter your Facebook profile link or name.";
+      raffleContact.focus();
+      return;
+    }
+
+    const raffleBtn = document.getElementById("raffleSubmitBtn");
+    raffleBtn.disabled = true;
+    raffleBtn.textContent = "Saving your entry...";
+
+    raffleMessage.className = "";
+    raffleMessage.textContent = "";
+
+    // A completed survey row can't be changed any more, so the raffle entry
+    // gets its own row (id "<survey id>_raffle") in the same table.
+    // It stays "in_progress" so it isn't counted as a completed survey,
+    // and entering again from the same survey just replaces the contact.
+    const raffleEntry = {
+      entry_type: "raffle",
+      survey_id: completedSubmission.id,
+      raffle_contact_type: type,
+      raffle_contact: contact,
+      raffle_entered_at: new Date().toISOString()
+    };
+
+    try {
+      const { error } = await supabaseClient.rpc("save_concert_survey", {
+        p_id: `${completedSubmission.id}_raffle`,
+        p_status: "in_progress",
+        p_responses: raffleEntry
+      });
+
+      if (error) throw error;
+
+      showRaffleDone(
+        "You're in! This survey counts as 1 raffle entry. Good luck!",
+        true
+      );
+
+    } catch (err) {
+      console.error("Raffle entry failed:", err);
+
+      raffleMessage.className = "error";
+      raffleMessage.textContent =
+        "We couldn't save your raffle entry: " +
+        (err.message || "Please check your connection and try again.");
+
+    } finally {
+      raffleBtn.disabled = false;
+      raffleBtn.textContent = "Enter the raffle";
+    }
+  });
+
+  document.getElementById("raffleSkipBtn").addEventListener("click", () => {
+    showRaffleDone("No problem. Thanks again for taking part!", false);
+  });
+
+  // For shared devices: bring the survey back for the next respondent.
+  document.getElementById("newSurveyBtn").addEventListener("click", () => {
+    completedSubmission = null;
+
+    document.getElementById("completionScreen").hidden = true;
+    document.getElementById("surveyForm").hidden = false;
+    updateNavigation();
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+
+  // Initialize the survey on Page 1.
+  renderSpaceThumbnails();
+  renderGeneralSection();
+  restoreProgress();
+  updateNavigation();
+</script>
+
+</body>
+</html>
