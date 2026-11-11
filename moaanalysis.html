@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Survey Analysis - Demographics & Threshold Space Means</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase CDN Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- SheetJS (xlsx) for true Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+
+    .font-mono-num {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .sheet-preview-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+    }
+
+    .sheet-preview-table th,
+    .sheet-preview-table td {
+      border: 1px solid #e2e8f0;
+      padding: 6px 14px;
+    }
+
+    .sheet-header-cell {
+      font-weight: 700;
+      color: #0f172a;
+      background-color: #f1f5f9;
+    }
+
+    .sheet-val-cell {
+      text-align: right;
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .sheet-spacer-row td {
+      border: none;
+      height: 18px;
+      background: transparent;
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8 flex flex-col items-center">
+
+  <div class="w-full max-w-5xl space-y-8">
+
+    <!-- TOP NAVIGATION & STATUS -->
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-200 gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center bg-indigo-600 text-white rounded-lg w-8 h-8 shadow-xs">
+            <i class="ph ph-chart-bar text-lg"></i>
+          </span>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            Venue Threshold Evaluation Analyzer
+          </h1>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Frequency distributions & mean rating matrices per space for completed survey responses.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button 
+          id="refreshBtn" 
+          onclick="fetchAndAnalyzeData()" 
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 active:scale-95 transition shadow-xs cursor-pointer">
+          <i class="ph ph-arrows-clockwise text-base" id="refreshIcon"></i>
+          <span>Reload</span>
+        </button>
+
+        <button 
+          id="exportXlsxBtn" 
+          onclick="exportFullWorkbookXLSX()" 
+          class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 active:scale-95 transition shadow-xs cursor-pointer">
+          <i class="ph ph-file-xls text-base"></i>
+          <span>Export All to Excel (.xlsx)</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- METRICS STRIP -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Completed Surveys</p>
+        <h3 id="statCompletedTotal" class="text-2xl font-bold text-emerald-600 font-mono-num mt-1">0</h3>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Incomplete Entries</p>
+        <h3 id="statIncomplete" class="text-2xl font-bold text-slate-400 font-mono-num mt-1">0</h3>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Raw Records</p>
+        <h3 id="statTotalRaw" class="text-2xl font-bold text-slate-800 font-mono-num mt-1">0</h3>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Connection</p>
+        <div id="statStatus" class="inline-flex items-center gap-1.5 mt-2 px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+          <i class="ph ph-circle-notch animate-spin text-sm"></i>
+          <span>Connecting...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 1: DEMOGRAPHICS FREQUENCY TABLE -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="ph ph-users text-indigo-600 text-lg"></i>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-700">1. Demographics Frequency Distribution</span>
+        </div>
+        <span class="text-xs text-slate-400 font-medium">Arrival Time, Times Attended, Ticket Class, Age, Gender</span>
+      </div>
+
+      <div class="p-6 overflow-x-auto" id="tableContainer">
+        <div class="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
+          <i class="ph ph-circle-notch animate-spin text-2xl text-indigo-600"></i>
+          <span class="text-xs font-medium">Fetching completed records from database...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: MEAN SCORE PER QUESTION GROUPED BY THRESHOLD SPACE -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <i class="ph ph-chart-line-up text-sky-600 text-lg"></i>
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-700">2. Mean Score Per Question by Threshold Space</span>
+            <p class="text-[11px] text-slate-400">Mean Likert ratings (1 to 5) calculated exclusively for completed assessments.</p>
+          </div>
+        </div>
+
+        <!-- Space Filter -->
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-500 font-medium">Select Space:</span>
+          <select id="spaceSelector" onchange="renderSpaceMeans()" class="text-xs border border-slate-300 rounded-md py-1.5 px-2 bg-white text-slate-700 focus:outline-none focus:border-indigo-500">
+            <option value="all">All Evaluated Spaces (Overview)</option>
+            <optgroup label="Exterior Spaces">
+              <option value="ext_coral_blue">Coral Way Blue Entrance</option>
+              <option value="ext_stairs">Stairs (Exterior)</option>
+              <option value="ext_marina_green">Marina Way - Green Entrance</option>
+              <option value="ext_plaza">Open Plaza</option>
+              <option value="ext_queue_platinum_vip">Queue Platinum/VIP</option>
+              <option value="ext_queue_vip_sro">Queue VIP SRO</option>
+              <option value="ext_shaded">Shaded Area</option>
+            </optgroup>
+            <optgroup label="Interior Spaces">
+              <option value="int_coral_lobby">Coral Main Lobby</option>
+              <option value="int_food">Food Stalls</option>
+              <option value="int_ga_hallway">GA Hallway</option>
+              <option value="int_lowerbox_hallway">Lower Box Hallway</option>
+              <option value="int_marina_lobby">Marina Main Lobby</option>
+              <option value="int_stairs">Stairs (Interior)</option>
+              <option value="int_upperbox_hallway">Upper Box Hallway</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div class="p-6 overflow-x-auto" id="meansContainer">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="toast" class="fixed bottom-5 right-5 px-4 py-2.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-xl translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 z-50">
+    <i class="ph ph-check-circle text-emerald-400 text-base"></i>
+    <span id="toastMsg">Notification message</span>
+  </div>
+
+  <script>
+    // 1. SUPABASE CLIENT
+    const SUPABASE_URL = "https://ysyhlmzkuaxkgzzqmudq.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_ADLq-fJz_zsxAF4QAoWNog_OrHnnbUV";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 2. SPACE METADATA & QUESTION SCHEMA
+    const SPACE_META = {
+      ext_coral_blue: { label: "Coral Way Blue Entrance", type: "EXTERIOR" },
+      ext_stairs: { label: "Stairs (Exterior)", type: "EXTERIOR" },
+      ext_marina_green: { label: "Marina Way - Green Entrance", type: "EXTERIOR" },
+      ext_plaza: { label: "Open Plaza", type: "EXTERIOR" },
+      ext_queue_platinum_vip: { label: "Queuing - Platinum and VIP", type: "EXTERIOR" },
+      ext_queue_vip_sro: { label: "Queuing - VIP SRO", type: "EXTERIOR" },
+      ext_shaded: { label: "Shaded Area", type: "EXTERIOR" },
+      int_coral_lobby: { label: "Coral Main Lobby", type: "INTERIOR" },
+      int_food: { label: "Food Stalls", type: "INTERIOR" },
+      int_ga_hallway: { label: "General Admission Hallway", type: "INTERIOR" },
+      int_lowerbox_hallway: { label: "Lower Box Hallway", type: "INTERIOR" },
+      int_marina_lobby: { label: "Marina Main Lobby", type: "INTERIOR" },
+      int_stairs: { label: "Stairs (Interior)", type: "INTERIOR" },
+      int_upperbox_hallway: { label: "Upper Box Hallway", type: "INTERIOR" }
+    };
+
+    const EXT_P2_QUESTIONS = [
+      { id: "q1", text: "Q1. Entrances and exits were easy to find" },
+      { id: "q2", text: "Q2. Pathways allowed smooth movement" },
+      { id: "q3", text: "Q3. The layout was easy to navigate" },
+      { id: "q4", text: "Q4. The space handled large crowds well" },
+      { id: "q5", text: "Q5. The space felt comfortable in size" },
+      { id: "q6", text: "Q6. Movement felt natural and easy" },
+      { id: "q7", text: "Q7. The space felt inviting rather than intimidating" },
+      { id: "q8", text: "Q8. Size encouraged smooth and natural body movement" },
+      { id: "q9", text: "Q9. The area had enough shade" },
+      { id: "q10", text: "Q10. Protected from rain or heat" },
+      { id: "q11", text: "Q11. Airflow was comfortable" },
+      { id: "q12", text: "Q12. Temperature felt right" },
+      { id: "q13", text: "Q13. Presence of trees/greenery improved comfort" },
+      { id: "q14", text: "Q14. Looked visually pleasing" },
+      { id: "q15", text: "Q15. Lighting improved comfort and mood" },
+      { id: "q16", text: "Q16. Seating areas were well-integrated and inviting" },
+      { id: "q17", text: "Q17. Supported fan activities (chants, photos)" },
+      { id: "q18", text: "Q18. Could see where to go next" },
+      { id: "q19", text: "Q19. Recognized available activities or services" },
+      { id: "q20", text: "Q20. Anticipated what's beyond this space" },
+      { id: "q21", text: "Q21. Signs and cues were visible from afar" }
+    ];
+
+    const INT_P2_QUESTIONS = [
+      { id: "q1", text: "Q1. Entrances and exits were easy to find" },
+      { id: "q2", text: "Q2. Pathways allowed smooth movement" },
+      { id: "q3", text: "Q3. The layout was easy to navigate" },
+      { id: "q4", text: "Q4. The space handled large crowds well" },
+      { id: "q5", text: "Q5. The space felt comfortable in size" },
+      { id: "q6", text: "Q6. Movement felt natural and easy" },
+      { id: "q7", text: "Q7. The space felt inviting rather than intimidating" },
+      { id: "q8", text: "Q8. Size encouraged smooth and natural body movement" },
+      { id: "q9", text: "Q9. The area had enough shade" },
+      { id: "q10", text: "Q10. Protected from rain or heat" },
+      { id: "q11", text: "Q11. Airflow was comfortable" },
+      { id: "q12", text: "Q12. Temperature felt right" },
+      { id: "q13", text: "Q13. Looked visually pleasing" },
+      { id: "q14", text: "Q14. Lighting improved comfort and mood" },
+      { id: "q15", text: "Q15. Seating areas were well-integrated and inviting" },
+      { id: "q16", text: "Q16. Supported fan activities (chants, photos)" },
+      { id: "q17", text: "Q17. Could see where to go next" },
+      { id: "q18", text: "Q18. Recognized available activities or services" },
+      { id: "q19", text: "Q19. Anticipated what's beyond this space" },
+      { id: "q20", text: "Q20. Signs and cues were visible from afar" }
+    ];
+
+    const PART4_QUESTIONS = [
+      { key: "stress", text: "P4.1 Experienced stress or discomfort" },
+      { key: "lookshade", text: "P4.2 Looked for shaded or less crowded area" },
+      { key: "confused", text: "P4.3 Experienced confusion or disorientation" },
+      { key: "cutting", text: "P4.4 Saw people cutting lines or breaking order" },
+      { key: "social", text: "P4.5 Interacted socially with fans" },
+      { key: "belonging", text: "P4.6 Felt strong sense of belonging" },
+      { key: "friends", text: "P4.7 Made new friends while waiting" },
+      { key: "excitement", text: "P4.8 Increased my excitement for concert" },
+      { key: "mood", text: "P4.9 Helped build concert mood" },
+      { key: "community", text: "P4.10 Felt part of shared fan community" },
+      { key: "bored", text: "P4.11 Felt bored and impatient" },
+      { key: "shift", text: "P4.12 Mood shifted to concert mode" }
+    ];
+
+    let completedResponses = [];
+    let aggregatedFrequencies = null;
+    let spaceMeanCalculations = {};
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastMsg").textContent = msg;
+      toast.classList.remove("translate-y-20", "opacity-0");
+      setTimeout(() => toast.classList.add("translate-y-20", "opacity-0"), 3500);
+    }
+
+    async function fetchAndAnalyzeData() {
+      const refreshIcon = document.getElementById("refreshIcon");
+      const statusBadge = document.getElementById("statStatus");
+      refreshIcon.classList.add("animate-spin");
+
+      statusBadge.className = "inline-flex items-center gap-1.5 mt-2 px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200";
+      statusBadge.innerHTML = `<i class="ph ph-circle-notch animate-spin text-sm"></i><span>Fetching...</span>`;
+
+      try {
+        const { data, error } = await supabaseClient
+          .from("concert_survey")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        const allRecords = data || [];
+        const nonRaffle = allRecords.filter(row => (row.responses || {}).entry_type !== "raffle");
+        
+        // Strict filter: COMPLETED SURVEYS ONLY
+        completedResponses = nonRaffle.filter(row => row.status === "completed");
+
+        document.getElementById("statTotalRaw").textContent = nonRaffle.length;
+        document.getElementById("statCompletedTotal").textContent = completedResponses.length;
+        document.getElementById("statIncomplete").textContent = nonRaffle.length - completedResponses.length;
+
+        statusBadge.className = "inline-flex items-center gap-1.5 mt-2 px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
+        statusBadge.innerHTML = `<i class="ph ph-check-circle text-sm"></i><span>Connected & Ready</span>`;
+
+        computeDemographicFrequencies();
+        renderFrequencyTable();
+
+        computeSpaceMeans();
+        renderSpaceMeans();
+
+        showToast(`Analyzed ${completedResponses.length} completed surveys`);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        statusBadge.className = "inline-flex items-center gap-1.5 mt-2 px-2 py-0.5 rounded text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200";
+        statusBadge.innerHTML = `<i class="ph ph-warning-circle text-sm"></i><span>Connection Error</span>`;
+        showToast("Error loading Supabase: " + (err.message || err));
+      } finally {
+        refreshIcon.classList.remove("animate-spin");
+      }
+    }
+
+    // 3. COMPUTE DEMOGRAPHICS
+    function computeDemographicFrequencies() {
+      const counts = {
+        arrivalTime: { "<30 min": 0, "30-59 min": 0, "1-2 hrs": 0, "2-4 hrs": 0, "5+": 0 },
+        venueFrequency: { "First Time": 0, "2-4": 0, "5+": 0 },
+        ticketClass: { "VIP Standing": 0, "VIP Seated": 0, "Lower Box": 0, "Upper Box": 0, "General Admission": 0 },
+        age: { "17<": 0, "18-25": 0, "26-45": 0, "46+": 0 },
+        gender: { "Female": 0, "Male": 0, "Non-binary": 0, "Prefer not to say": 0 }
+      };
+
+      completedResponses.forEach(sub => {
+        const r = sub.responses || {};
+
+        const arr = (r.prelim_arrival_time || "").toLowerCase().trim();
+        if (arr.includes("<30") || arr.includes("less than 30") || arr.includes("30 mins or less")) counts.arrivalTime["<30 min"]++;
+        else if (arr.includes("30-59") || arr.includes("30 to 59")) counts.arrivalTime["30-59 min"]++;
+        else if (arr.includes("1-2") || arr.includes("1 to 2")) counts.arrivalTime["1-2 hrs"]++;
+        else if (arr.includes("2-4") || arr.includes("2 to 4")) counts.arrivalTime["2-4 hrs"]++;
+        else if (arr.includes("5+") || arr.includes("5 or more") || arr.includes("more than 4")) counts.arrivalTime["5+"]++;
+
+        const freq = (r.prelim_venue_frequency || "").toLowerCase().trim();
+        if (freq.includes("first") || freq.includes("1st") || freq === "1") counts.venueFrequency["First Time"]++;
+        else if (freq.includes("2-4") || freq.includes("2 to 4") || ["2", "3", "4"].includes(freq)) counts.venueFrequency["2-4"]++;
+        else if (freq.includes("5") || freq.includes("frequent")) counts.venueFrequency["5+"]++;
+
+        const tc = (r.prelim_ticket_class || "").toLowerCase().trim();
+        if (tc.includes("vip standing") || tc.includes("pit")) counts.ticketClass["VIP Standing"]++;
+        else if (tc.includes("vip seated") || tc.includes("seated vip")) counts.ticketClass["VIP Seated"]++;
+        else if (tc.includes("lower box")) counts.ticketClass["Lower Box"]++;
+        else if (tc.includes("upper box")) counts.ticketClass["Upper Box"]++;
+        else if (tc.includes("general admission") || tc.includes("ga")) counts.ticketClass["General Admission"]++;
+
+        const ageStr = (r.demo_age || "").toString().toLowerCase().trim();
+        const ageNum = parseInt(ageStr, 10);
+        if (ageStr.includes("<18") || ageStr.includes("17<") || ageStr.includes("under 18") || ageNum < 18) counts.age["17<"]++;
+        else if (ageStr.includes("18-25") || (ageNum >= 18 && ageNum <= 25)) counts.age["18-25"]++;
+        else if (ageStr.includes("26-45") || (ageNum >= 26 && ageNum <= 45)) counts.age["26-45"]++;
+        else if (ageStr.includes("46") || ageNum >= 46) counts.age["46+"]++;
+
+        const gen = (r.demo_gender || "").toLowerCase().trim();
+        if (gen.includes("female") || gen === "f") counts.gender["Female"]++;
+        else if (gen.includes("male") || gen === "m") counts.gender["Male"]++;
+        else if (gen.includes("non-binary") || gen.includes("nonbinary")) counts.gender["Non-binary"]++;
+        else if (gen.includes("prefer not")) counts.gender["Prefer not to say"]++;
+      });
+
+      aggregatedFrequencies = counts;
+    }
+
+    function renderFrequencyTable() {
+      const container = document.getElementById("tableContainer");
+      if (!aggregatedFrequencies) return;
+
+      const blocks = [
+        { title: "Arrival Time", data: aggregatedFrequencies.arrivalTime },
+        { title: "Times Attended", data: aggregatedFrequencies.venueFrequency },
+        { title: "Ticket Class", data: aggregatedFrequencies.ticketClass },
+        { title: "Age", data: aggregatedFrequencies.age },
+        { title: "Gender", data: aggregatedFrequencies.gender }
+      ];
+
+      let html = `
+        <div class="max-w-md mx-auto bg-white rounded border border-slate-300 p-2 shadow-2xs">
+          <table class="sheet-preview-table">
+            <tbody>
+      `;
+
+      blocks.forEach((block, bIdx) => {
+        html += `
+          <tr>
+            <td class="sheet-header-cell font-bold text-slate-900 border-b border-slate-300">${block.title}</td>
+            <td class="sheet-header-cell border-b border-slate-300 w-24"></td>
+          </tr>
+        `;
+
+        for (const [key, val] of Object.entries(block.data)) {
+          html += `
+            <tr>
+              <td class="text-slate-700 pl-4">${escapeHtml(key)}</td>
+              <td class="sheet-val-cell">${val}</td>
+            </tr>
+          `;
+        }
+
+        if (bIdx < blocks.length - 1) {
+          html += `
+            <tr class="sheet-spacer-row">
+              <td colspan="2"></td>
+            </tr>
+          `;
+        }
+      });
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    // 4. COMPUTE SPACE MEAN SCORES
+    function computeSpaceMeans() {
+      spaceMeanCalculations = {};
+
+      Object.keys(SPACE_META).forEach(spaceKey => {
+        const meta = SPACE_META[spaceKey];
+        const isExt = meta.type === "EXTERIOR";
+        const questionsP2 = isExt ? EXT_P2_QUESTIONS : INT_P2_QUESTIONS;
+
+        // Submissions that evaluated this specific space
+        const participants = completedResponses.filter(sub => {
+          const list = sub.responses?.spaces_encountered || [];
+          return list.includes(spaceKey);
+        });
+
+        const p2Averages = questionsP2.map((q, idx) => {
+          const qNum = idx + 1;
+          let sum = 0;
+          let count = 0;
+
+          participants.forEach(sub => {
+            const val = parseFloat(sub.responses?.[`attr_${spaceKey}_q${qNum}`]);
+            if (!isNaN(val) && val > 0) {
+              sum += val;
+              count++;
+            }
+          });
+
+          return {
+            id: q.id,
+            text: q.text,
+            mean: count > 0 ? (sum / count).toFixed(2) : "N/A",
+            respondents: count
+          };
+        });
+
+        const p4Averages = PART4_QUESTIONS.map(q => {
+          let sum = 0;
+          let count = 0;
+
+          participants.forEach(sub => {
+            const raw = sub.responses?.[`beh_${spaceKey}_${q.key}`] || sub.responses?.[`emo_${spaceKey}_${q.key}`];
+            const val = parseFloat(raw);
+            if (!isNaN(val) && val > 0) {
+              sum += val;
+              count++;
+            }
+          });
+
+          return {
+            key: q.key,
+            text: q.text,
+            mean: count > 0 ? (sum / count).toFixed(2) : "N/A",
+            respondents: count
+          };
+        });
+
+        spaceMeanCalculations[spaceKey] = {
+          meta,
+          totalParticipants: participants.length,
+          p2Averages,
+          p4Averages
+        };
+      });
+    }
+
+    function renderSpaceMeans() {
+      const container = document.getElementById("meansContainer");
+      const selectedFilter = document.getElementById("spaceSelector").value;
+
+      const keysToRender = selectedFilter === "all" 
+        ? Object.keys(SPACE_META) 
+        : [selectedFilter];
+
+      let html = `<div class="space-y-6">`;
+
+      keysToRender.forEach(spaceKey => {
+        const calc = spaceMeanCalculations[spaceKey];
+        if (!calc) return;
+
+        const isExt = calc.meta.type === "EXTERIOR";
+        const badgeColor = isExt ? "bg-sky-100 text-sky-800 border-sky-300" : "bg-purple-100 text-purple-800 border-purple-300";
+
+        html += `
+          <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+            <div class="px-5 py-3.5 bg-slate-100/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2 py-0.5 rounded font-bold border ${badgeColor}">
+                  ${calc.meta.type}
+                </span>
+                <h4 class="text-sm font-bold text-slate-800">${escapeHtml(calc.meta.label)}</h4>
+              </div>
+              <span class="text-xs font-semibold text-slate-600 bg-white px-2.5 py-1 rounded-md border border-slate-200 shadow-2xs">
+                ${calc.totalParticipants} Completed Respondent(s)
+              </span>
+            </div>
+
+            <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              <!-- Part 2 Table -->
+              <div>
+                <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full ${isExt ? 'bg-sky-500' : 'bg-purple-500'}"></span>
+                  Part 2: Physical Attributes (Mean Rating 1-5)
+                </h5>
+                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                  <table class="w-full text-xs">
+                    <thead>
+                      <tr class="bg-slate-800 text-white font-semibold">
+                        <th class="py-2 px-3 text-left">Question Indicator</th>
+                        <th class="py-2 px-3 text-right w-16">Mean</th>
+                        <th class="py-2 px-3 text-right w-12 text-slate-400">n</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                      ${calc.p2Averages.map(row => `
+                        <tr class="hover:bg-slate-50">
+                          <td class="py-1.5 px-3 text-slate-700 leading-tight">${escapeHtml(row.text)}</td>
+                          <td class="py-1.5 px-3 text-right font-mono font-bold ${row.mean !== 'N/A' && parseFloat(row.mean) >= 3.5 ? 'text-emerald-600' : 'text-slate-800'}">${row.mean}</td>
+                          <td class="py-1.5 px-3 text-right font-mono text-slate-400 text-[11px]">${row.respondents}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Part 4 Table -->
+              <div>
+                <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-slate-600"></span>
+                  Part 4: Behavioral & Emotional Impact (Mean Rating 1-5)
+                </h5>
+                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                  <table class="w-full text-xs">
+                    <thead>
+                      <tr class="bg-slate-800 text-white font-semibold">
+                        <th class="py-2 px-3 text-left">Behavioral / Emotional Indicator</th>
+                        <th class="py-2 px-3 text-right w-16">Mean</th>
+                        <th class="py-2 px-3 text-right w-12 text-slate-400">n</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                      ${calc.p4Averages.map(row => `
+                        <tr class="hover:bg-slate-50">
+                          <td class="py-1.5 px-3 text-slate-700 leading-tight">${escapeHtml(row.text)}</td>
+                          <td class="py-1.5 px-3 text-right font-mono font-bold ${row.mean !== 'N/A' && parseFloat(row.mean) >= 3.5 ? 'text-indigo-600' : 'text-slate-800'}">${row.mean}</td>
+                          <td class="py-1.5 px-3 text-right font-mono text-slate-400 text-[11px]">${row.respondents}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    // 5. EXPORT WORKBOOK (XLSX)
+    function exportFullWorkbookXLSX() {
+      if (!aggregatedFrequencies || !Object.keys(spaceMeanCalculations).length) return;
+      showToast("Preparing multi-sheet Excel file...");
+
+      const wb = XLSX.utils.book_new();
+
+      // SHEET 1: Demographics Frequency
+      const demoAoa = [];
+      const blocks = [
+        { title: "Arrival Time", data: aggregatedFrequencies.arrivalTime },
+        { title: "Times Attended", data: aggregatedFrequencies.venueFrequency },
+        { title: "Ticket Class", data: aggregatedFrequencies.ticketClass },
+        { title: "Age", data: aggregatedFrequencies.age },
+        { title: "Gender", data: aggregatedFrequencies.gender }
+      ];
+
+      blocks.forEach((block, idx) => {
+        demoAoa.push([block.title, ""]);
+        for (const [label, count] of Object.entries(block.data)) {
+          demoAoa.push([label, count]);
+        }
+        if (idx < blocks.length - 1) demoAoa.push(["", ""]);
+      });
+
+      const wsDemo = XLSX.utils.aoa_to_sheet(demoAoa);
+      wsDemo["!cols"] = [{ wch: 22 }, { wch: 10 }];
+      XLSX.utils.book_append_sheet(wb, wsDemo, "Demographics Frequency");
+
+      // SHEET 2: Threshold Space Question Means
+      const meansAoa = [];
+      meansAoa.push(["THRESHOLD SPACE", "TYPE", "SECTION", "QUESTION INDICATOR", "MEAN SCORE", "SAMPLE SIZE (n)"]);
+
+      Object.keys(spaceMeanCalculations).forEach(spaceKey => {
+        const item = spaceMeanCalculations[spaceKey];
+
+        item.p2Averages.forEach(q => {
+          meansAoa.push([item.meta.label, item.meta.type, "Part 2: Physical Attributes", q.text, q.mean, q.respondents]);
+        });
+
+        item.p4Averages.forEach(q => {
+          meansAoa.push([item.meta.label, item.meta.type, "Part 4: Behavioral & Emotional", q.text, q.mean, q.respondents]);
+        });
+
+        meansAoa.push(["", "", "", "", "", ""]); // Spacer
+      });
+
+      const wsMeans = XLSX.utils.aoa_to_sheet(meansAoa);
+      wsMeans["!cols"] = [
+        { wch: 28 },
+        { wch: 12 },
+        { wch: 30 },
+        { wch: 55 },
+        { wch: 14 },
+        { wch: 16 }
+      ];
+      XLSX.utils.book_append_sheet(wb, wsMeans, "Space Mean Scores");
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const filename = `Survey_Assessment_Analysis_${dateStr}.xlsx`;
+      XLSX.writeFile(wb, filename);
+
+      showToast(`Downloaded ${filename}`);
+    }
+
+    function escapeHtml(str) {
+      if (str == null) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      fetchAndAnalyzeData();
+    });
+  </script>
+</body>
+</html>
