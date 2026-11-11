@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Threshold Spaces - Survey Results Dashboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+    body {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .mono { font-family: "JetBrains Mono", monospace; font-variant-numeric: tabular-nums; }
+
+    .freq-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+    .freq-table th {
+      background: #0f172a; color: #fff; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em; padding: 9px 12px; text-align: left;
+    }
+    .freq-table th.num, .freq-table td.num { text-align: right; }
+    .freq-table td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+    .freq-table tbody tr:hover td { background: #f8fafc; }
+    .freq-table tfoot td {
+      font-weight: 700; background: #f1f5f9; border-top: 2px solid #0f172a; border-bottom: none;
+    }
+    .freq-table tr.no-response td { color: #64748b; font-style: italic; }
+
+    /* Inline magnitude bar: one hue, thin, rounded data end */
+    .bar-track { position: relative; height: 10px; background: #eef2f7; border-radius: 2px; min-width: 120px; }
+    .bar-fill { height: 100%; background: #4338ca; border-radius: 0 4px 4px 0; }
+    .bar-fill.mode { background: #312e81; }
+
+    /* Mean score tables */
+    .mean-table td.dim-row {
+      background: #eef2ff; color: #3730a3; font-weight: 700; font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.06em; padding-top: 7px; padding-bottom: 7px;
+    }
+    .mean-table td.dim-row.num { text-align: right; }
+    .mean-bar { position: relative; height: 8px; background: #eef2f7; border-radius: 2px; min-width: 90px; }
+    .mean-bar > div { height: 100%; background: #4338ca; border-radius: 0 4px 4px 0; }
+    .interp { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+              border: 1px solid #cbd5e1; color: #334155; background: #fff; white-space: nowrap; }
+
+    details.space-block > summary { list-style: none; cursor: pointer; }
+    details.space-block > summary::-webkit-details-marker { display: none; }
+    details.space-block[open] .chev { transform: rotate(90deg); }
+    .chev { transition: transform 0.15s ease; }
+
+    /* Dimension summary matrix: single-hue sequential tint, text stays dark ink */
+    .dim-matrix td.cell { text-align: center; }
+    .dim-matrix tr.set-row td { background: #0f172a0d; font-weight: 700; }
+    .dim-matrix tr.pooled td { background: #f1f5f9; font-weight: 700; border-top: 2px solid #94a3b8; }
+    .neg-tag { font-size: 11px; font-weight: 700; color: #64748b; white-space: nowrap; }
+    details.answers > summary { list-style: none; cursor: pointer; }
+    details.answers > summary::-webkit-details-marker { display: none; }
+    details.answers[open] .chev { transform: rotate(90deg); }
+  </style>
+</head>
+<body class="p-3 md:p-6 min-h-screen">
+
+  <!-- HEADER -->
+  <header class="flex flex-col md:flex-row md:items-center justify-between pb-4 gap-4 border-b border-slate-300">
+    <div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="inline-flex items-center justify-center bg-indigo-600 text-white rounded-md w-8 h-8">
+          <i class="ph ph-chart-bar-horizontal text-xl"></i>
+        </span>
+        <h1 class="text-xl md:text-2xl font-bold tracking-tight text-slate-900">
+          Part 1: Respondent Profile
+        </h1>
+        <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+          Completed surveys only
+        </span>
+      </div>
+      <p class="text-xs md:text-sm text-slate-500 mt-0.5">
+        Threshold Spaces Arena Assessment &middot; Frequency distribution of respondents who submitted the full survey
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <button onclick="fetchData()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 active:scale-95 transition shadow-sm">
+        <i class="ph ph-arrows-clockwise text-base" id="refreshIcon"></i>
+        <span>Refresh Data</span>
+      </button>
+      <button onclick="exportXLSX()" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 active:scale-95 transition shadow-sm">
+        <i class="ph ph-file-xls text-base"></i>
+        <span>Export Excel (.xlsx)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- SUMMARY + FILTER -->
+  <section class="flex flex-col lg:flex-row gap-3 my-4">
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 lg:w-72">
+      <div class="w-11 h-11 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl">
+        <i class="ph ph-users"></i>
+      </div>
+      <div>
+        <p class="text-xs font-medium text-slate-500">Completed respondents (N)</p>
+        <h3 id="statN" class="text-2xl font-bold text-slate-900 mono">–</h3>
+        <p id="statNote" class="text-[11px] text-slate-400"></p>
+      </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex-1 flex flex-wrap items-center gap-3">
+      <label class="text-[11px] font-bold text-slate-600 uppercase">Filter by ticket class</label>
+      <select id="tierFilter" onchange="render()" class="py-1.5 px-2.5 text-xs border border-slate-300 rounded-md bg-white text-slate-700 focus:outline-none focus:border-indigo-500">
+        <option value="all">All ticket classes</option>
+      </select>
+      <span class="text-xs text-slate-400">Percentages are of N for the current filter. Missing answers are shown as “No response”.</span>
+    </div>
+  </section>
+
+  <!-- TABLES -->
+  <div id="tables" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+    <div class="xl:col-span-2 bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-500">
+      <i class="ph ph-circle-notch animate-spin text-2xl text-indigo-600"></i>
+      <p class="mt-2 text-sm">Loading completed surveys from Supabase…</p>
+    </div>
+  </div>
+
+  <!-- EVALUATION PER THRESHOLD SPACE (PARTS 2, 3, 4) -->
+  <section class="mt-10">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-3 border-b border-slate-300">
+      <div>
+        <h2 class="text-lg md:text-xl font-bold tracking-tight text-slate-900">
+          Parts 2&ndash;4: Results per Threshold Space
+        </h2>
+        <p class="text-xs md:text-sm text-slate-500 mt-0.5">
+          For each space: Part 2 Physical Attributes (means), Part 3 Fan Activities (frequencies), Part 4 Behavioral Outcomes &amp; Emotional Buildup (means)
+          &middot; n = respondents who evaluated the space &middot; Uses the ticket class filter above
+        </p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="toggleAllSpaces(true)" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm">Expand all</button>
+        <button onclick="toggleAllSpaces(false)" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm">Collapse all</button>
+      </div>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-lg px-4 py-2.5 my-3 text-xs text-slate-600 space-y-1">
+      <div class="flex flex-wrap gap-x-5 gap-y-1">
+        <span class="font-bold text-slate-700">Agreement scale (Parts 2, 4, Section 3.1):</span>
+        <span>1.00&ndash;1.80 Strongly Disagree</span>
+        <span>1.81&ndash;2.60 Disagree</span>
+        <span>2.61&ndash;3.40 Neutral</span>
+        <span>3.41&ndash;4.20 Agree</span>
+        <span>4.21&ndash;5.00 Strongly Agree</span>
+      </div>
+      <div class="flex flex-wrap gap-x-5 gap-y-1">
+        <span class="font-bold text-slate-700">Rating scale (Section 3.2):</span>
+        <span>1.00&ndash;1.80 Very Poor</span>
+        <span>1.81&ndash;2.60 Poor</span>
+        <span>2.61&ndash;3.40 Fair</span>
+        <span>3.41&ndash;4.20 Good</span>
+        <span>4.21&ndash;5.00 Excellent</span>
+      </div>
+      <div>
+        <span class="neg-tag">(&minus;)</span> marks negatively worded Part 4 items (e.g. stress, boredom): a <em>higher</em> mean there means a <em>worse</em> experience.
+        Means are reported as answered (not reverse-scored).
+      </div>
+    </div>
+
+    <div id="meansContainer" class="space-y-6"></div>
+  </section>
+
+  <!-- SUMMARIES -->
+  <section class="mt-10">
+    <div class="pb-3 border-b border-slate-300">
+      <h2 class="text-lg md:text-xl font-bold tracking-tight text-slate-900">Summary Tables</h2>
+      <p class="text-xs md:text-sm text-slate-500 mt-0.5">
+        Category means are computed per respondent (average of their answers in that category), then averaged.
+        Pooled rows count each space evaluation once. Darker cells = higher values.
+      </p>
+    </div>
+
+    <h3 class="font-bold text-slate-900 mt-5 mb-2">Summary 1. Part 2 &mdash; Mean Score per Physical Attribute Dimension</h3>
+    <div id="dimensionSummary"></div>
+
+    <h3 class="font-bold text-slate-900 mt-8 mb-2">Summary 2. Part 4 &mdash; Mean Score per Behavioral &amp; Emotional Category</h3>
+    <div id="part4Summary"></div>
+
+    <h3 class="font-bold text-slate-900 mt-8 mb-2">Summary 3. Part 3.1 &mdash; Activities Done per Space (% of respondents in the space)</h3>
+    <div id="activitySummary"></div>
+
+    <h3 class="font-bold text-slate-900 mt-8 mb-2">Summary 4. Part 3.2 &mdash; Length of Stay per Space</h3>
+    <div id="durationSummary"></div>
+  </section>
+
+  <!-- SECTION 3 -->
+  <section class="mt-10 mb-10">
+    <div class="pb-3 border-b border-slate-300">
+      <h2 class="text-lg md:text-xl font-bold tracking-tight text-slate-900">
+        Section 3: Fan Satisfaction &amp; Overall Concert Journey
+      </h2>
+      <p class="text-xs md:text-sm text-slate-500 mt-0.5">
+        Answered once per respondent, about all the spaces together &middot; Uses the ticket class filter above
+      </p>
+    </div>
+    <div id="section3" class="mt-3 space-y-4"></div>
+  </section>
+
+  <div id="toast" class="fixed bottom-5 right-5 px-4 py-2.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-xl translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 z-50">
+    <i class="ph ph-info text-base text-emerald-400"></i>
+    <span id="toastMsg"></span>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://ysyhlmzkuaxkgzzqmudq.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_ADLq-fJz_zsxAF4QAoWNog_OrHnnbUV";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const NO_RESPONSE = "No response";
+
+    // Variables of the respondent profile, in survey order.
+    // `categories` fixes the row order (and shows 0-count options).
+    // Origin is free text, so its categories come from the data.
+    const PROFILE_VARIABLES = [
+      {
+        key: "demo_age",
+        title: "Age",
+        section: "Part 1: Demographics",
+        categories: ["17 years old and below", "18-25 years old", "26-45 years old", "46+ years old"]
+      },
+      {
+        key: "demo_gender",
+        title: "Gender",
+        section: "Part 1: Demographics",
+        categories: ["Male", "Female", "LGBTQIA+", "Prefer not to say"]
+      },
+      {
+        key: "demo_origin",
+        title: "Place of Origin (City / Province)",
+        section: "Part 1: Demographics",
+        freeText: true,
+        wide: true
+      },
+      {
+        key: "prelim_arrival_time",
+        title: "Arrival Time Before the Show",
+        section: "Preliminary Information",
+        categories: ["< 30 min", "30-59 min", "1-2 hrs", "2-4 hrs", "> 4 hrs"]
+      },
+      {
+        key: "prelim_venue_frequency",
+        title: "Concerts Attended at This Venue",
+        section: "Preliminary Information",
+        categories: ["First time", "2-4", "5+"]
+      },
+      {
+        key: "prelim_ticket_class",
+        title: "Ticket Class",
+        section: "Preliminary Information",
+        categories: [
+          "VIP Standing (including PIT A/B)",
+          "VIP Seated",
+          "Lower Box (Premium and Regular)",
+          "Upper Box"
+        ]
+      }
+    ];
+
+    let completedRows = [];
+    let lastTables = [];
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toastMsg").textContent = msg;
+      toast.classList.remove("translate-y-20", "opacity-0");
+      setTimeout(() => toast.classList.add("translate-y-20", "opacity-0"), 3500);
+    }
+
+    function escapeHtml(str) {
+      if (str == null) return "";
+      return String(str)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    // Free-text origin: trim, collapse spaces, Title Case, so
+    // "quezon city", "Quezon  City " and "QUEZON CITY" count together.
+    function normalizeOrigin(value) {
+      const clean = String(value || "").trim().replace(/\s+/g, " ").replace(/\s*,\s*/g, ", ");
+      if (!clean) return "";
+      return clean.toLowerCase().replace(/(^|[\s\-\/(,.])([a-zà-ÿñ])/g, (m, p, c) => p + c.toUpperCase());
+    }
+
+    // Fetch every completed survey, paging past Supabase's 1000-row limit.
+    async function fetchData() {
+      const icon = document.getElementById("refreshIcon");
+      icon.classList.add("animate-spin");
+
+      try {
+        const PAGE = 1000;
+        let from = 0;
+        let all = [];
+
+        while (true) {
+          const { data, error } = await supabaseClient
+            .from("concert_survey")
+            .select("id, status, created_at, responses")
+            .eq("status", "completed")
+            .order("created_at", { ascending: true })
+            .range(from, from + PAGE - 1);
+
+          if (error) throw error;
+          all = all.concat(data || []);
+          if (!data || data.length < PAGE) break;
+          from += PAGE;
+        }
+
+        // Raffle rows are never "completed", but exclude them defensively.
+        completedRows = all.filter(row => (row.responses || {}).entry_type !== "raffle");
+
+        populateTierFilter();
+        render();
+        showToast(`Loaded ${completedRows.length} completed surveys`);
+      } catch (err) {
+        console.error(err);
+        document.getElementById("tables").innerHTML = `
+          <div class="xl:col-span-2 bg-red-50 border border-red-200 text-red-800 rounded-xl p-6 text-sm">
+            Could not load data from Supabase: ${escapeHtml(err.message || err)}
+          </div>`;
+        showToast("Error loading Supabase data");
+      } finally {
+        icon.classList.remove("animate-spin");
+      }
+    }
+
+    function populateTierFilter() {
+      const select = document.getElementById("tierFilter");
+      const current = select.value;
+      const tiers = PROFILE_VARIABLES.find(v => v.key === "prelim_ticket_class").categories;
+      select.innerHTML = `<option value="all">All ticket classes</option>` +
+        tiers.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+      select.value = tiers.includes(current) ? current : "all";
+    }
+
+    // Build {category, f, pct, cumPct} rows for one variable.
+    function buildFrequencyTable(variable, rows) {
+      const counts = new Map();
+      let missing = 0;
+
+      rows.forEach(row => {
+        const raw = (row.responses || {})[variable.key];
+        const value = variable.freeText ? normalizeOrigin(raw) : String(raw || "").trim();
+        if (!value) { missing++; return; }
+        counts.set(value, (counts.get(value) || 0) + 1);
+      });
+
+      let categories;
+      if (variable.freeText) {
+        // Most frequent first, ties alphabetically.
+        categories = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b));
+      } else {
+        // Fixed survey order, then any unexpected values found in the data.
+        const extras = [...counts.keys()].filter(k => !variable.categories.includes(k)).sort();
+        categories = [...variable.categories, ...extras];
+      }
+
+      const n = rows.length;
+      let cum = 0;
+      const out = categories.map(cat => {
+        const f = counts.get(cat) || 0;
+        cum += f;
+        return { category: cat, f, pct: n ? (f / n) * 100 : 0, cumPct: n ? (cum / n) * 100 : 0 };
+      });
+
+      if (missing) {
+        cum += missing;
+        out.push({ category: NO_RESPONSE, f: missing, pct: n ? (missing / n) * 100 : 0, cumPct: n ? (cum / n) * 100 : 0 });
+      }
+
+      return { variable, rows: out, n, distinct: counts.size };
+    }
+
+    function fmtPct(v) { return v.toFixed(2) + "%"; }
+
+    function render() {
+      const tier = document.getElementById("tierFilter").value;
+      const rows = tier === "all"
+        ? completedRows
+        : completedRows.filter(r => (r.responses || {}).prelim_ticket_class === tier);
+
+      const n = rows.length;
+      document.getElementById("statN").textContent = n;
+      document.getElementById("statNote").textContent =
+        tier === "all" ? "All ticket classes" : `Filtered: ${tier} (of ${completedRows.length})`;
+
+      const container = document.getElementById("tables");
+
+      if (!n) {
+        lastTables = [];
+        renderMeans(rows);
+        container.innerHTML = `
+          <div class="xl:col-span-2 bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-500 text-sm">
+            No completed surveys${tier === "all" ? "" : " for this ticket class"} yet.
+          </div>`;
+        return;
+      }
+
+      lastTables = PROFILE_VARIABLES.map(v => buildFrequencyTable(v, rows));
+
+      let html = "";
+      let lastSection = null;
+      let tableNo = 0;
+
+      lastTables.forEach(t => {
+        const v = t.variable;
+        if (v.section !== lastSection) {
+          html += `<h2 class="xl:col-span-2 text-sm font-bold uppercase tracking-wider text-slate-500 mt-2">${escapeHtml(v.section)}</h2>`;
+          lastSection = v.section;
+        }
+        tableNo++;
+
+        const maxF = Math.max(...t.rows.map(r => r.f), 0);
+        const body = t.rows.map(r => {
+          const isMode = r.f === maxF && r.f > 0 && r.category !== NO_RESPONSE;
+          const width = maxF ? (r.f / maxF) * 100 : 0;
+          return `
+            <tr class="${r.category === NO_RESPONSE ? "no-response" : ""}">
+              <td class="${isMode ? "font-semibold" : ""}">${escapeHtml(r.category)}</td>
+              <td class="num mono">${r.f}</td>
+              <td class="num mono">${fmtPct(r.pct)}</td>
+              <td class="num mono text-slate-500">${fmtPct(r.cumPct)}</td>
+              <td title="${escapeHtml(r.category)}: ${r.f} (${fmtPct(r.pct)})">
+                <div class="bar-track"><div class="bar-fill ${isMode ? "mode" : ""}" style="width:${width}%"></div></div>
+              </td>
+            </tr>`;
+        }).join("");
+
+        const note = v.freeText
+          ? `<p class="text-[11px] text-slate-400 px-4 pb-3 pt-2">${t.distinct} distinct place(s). Spelling and capitalisation are normalised; variants like “QC” and “Quezon City” are counted separately.</p>`
+          : "";
+
+        html += `
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden ${v.wide ? "xl:col-span-2" : ""}">
+            <div class="px-4 py-3 flex items-baseline justify-between gap-3">
+              <h3 class="font-bold text-slate-900">Table ${tableNo}. ${escapeHtml(v.title)}</h3>
+              <span class="text-xs text-slate-500 mono">N = ${t.n}</span>
+            </div>
+            <div class="overflow-x-auto ${v.freeText ? "max-h-[520px] overflow-y-auto" : ""}">
+              <table class="freq-table">
+                <thead>
+                  <tr>
+                    <th>${escapeHtml(v.title)}</th>
+                    <th class="num" style="width:90px">Frequency (f)</th>
+                    <th class="num" style="width:100px">Percent (%)</th>
+                    <th class="num" style="width:110px">Cumulative %</th>
+                    <th style="width:28%">Distribution</th>
+                  </tr>
+                </thead>
+                <tbody>${body}</tbody>
+                <tfoot>
+                  <tr>
+                    <td>Total</td>
+                    <td class="num mono">${t.n}</td>
+                    <td class="num mono">100.00%</td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            ${note}
+          </div>`;
+      });
+
+      container.innerHTML = html;
+      renderMeans(rows);
+    }
+
+
+    // ============================================================
+    // PARTS 2-4 PER THRESHOLD SPACE, SUMMARIES, SECTION 3
+    // ============================================================
+
+    const SPACES = [
+      { key: "ext_coral_blue", label: "Coral Way Blue Entrance", set: "EXT" },
+      { key: "ext_stairs", label: "Exterior Stairs", set: "EXT" },
+      { key: "ext_marina_green", label: "Marina Way - Green Entrance", set: "EXT" },
+      { key: "ext_plaza", label: "Open Plaza", set: "EXT" },
+      { key: "ext_queue_platinum_vip", label: "Queuing (Platinum and VIP)", set: "EXT" },
+      { key: "ext_queue_vip_sro", label: "Queuing (VIP SRO)", set: "EXT" },
+      { key: "ext_shaded", label: "Shaded Area", set: "EXT" },
+      { key: "int_coral_lobby", label: "Coral Main Lobby", set: "INT" },
+      { key: "int_food", label: "Food Stalls", set: "INT" },
+      { key: "int_ga_hallway", label: "General Admission Hallway", set: "INT" },
+      { key: "int_lowerbox_hallway", label: "Lower Box Hallway", set: "INT" },
+      { key: "int_marina_lobby", label: "Marina Main Lobby", set: "INT" },
+      { key: "int_stairs", label: "Stairs (Interior)", set: "INT" },
+      { key: "int_upperbox_hallway", label: "Upper Box Hallway", set: "INT" }
+    ];
+
+    const SET_LABEL = { EXT: "Exterior", INT: "Interior" };
+
+    // ---------- Scale definitions ----------
+    // Each item: label (as numbered in the guide), text, field(spaceKey) -> response key, neg = negatively worded.
+
+    function part2Groups(set) {
+      const climatic = [
+        "The area had enough shade.",
+        "It was protected from rain or heat.",
+        "The airflow was comfortable.",
+        "The temperature felt right."
+      ];
+      if (set === "EXT") climatic.push("The presence of trees, greenery, or shading elements improved comfort.");
+
+      const groups = [
+        { dim: "Physical Permeability", items: [
+          "Entrances and exits were easy to find.",
+          "Pathways allowed smooth movement.",
+          "The layout was easy to navigate.",
+          "The space handled large crowds well." ] },
+        { dim: "Human Scale", items: [
+          "The space felt comfortable in size.",
+          "Movement felt natural and easy.",
+          "The space felt inviting rather than intimidating.",
+          "The size of the space encouraged smooth and natural body movement." ] },
+        { dim: "Climatic Responsiveness", items: climatic },
+        { dim: "Richness of Experience", items: [
+          "The space looked visually pleasing.",
+          "Lighting improved comfort and mood.",
+          "Seating areas or resting spots were well-integrated and inviting.",
+          "The space supported fan activities (chants, photos, etc.)." ] },
+        { dim: "Visual Permeability", items: [
+          "I could see where to go next.",
+          "I could recognize available activities or services.",
+          "I could anticipate what's beyond this space.",
+          "Signs and cues were visible from afar." ] }
+      ];
+
+      let q = 0;
+      return groups.map(g => ({
+        dim: g.dim,
+        items: g.items.map(text => {
+          const n = ++q;
+          return { label: String(n), text, field: s => `attr_${s}_q${n}` };
+        })
+      }));
+    }
+
+    const DIMENSIONS = part2Groups("EXT").map(g => g.dim);
+
+    // Part 4 grouping follows the guide (confusion sits under Organization).
+    const PART4_GROUPS = [
+      { dim: "Physical Comfort and Safety", items: [
+        ["beh", "stress", "1", "Experienced stress or discomfort", true],
+        ["beh", "lookshade", "2", "Looked for shaded or less crowded area"] ] },
+      { dim: "Organization", items: [
+        ["beh", "confused", "3", "I experienced confusion or disorientation while in the space", true],
+        ["beh", "cutting", "4", "Saw people cutting lines or breaking order, which affected my experience", true] ] },
+      { dim: "Social Interaction", items: [
+        ["beh", "social", "5", "Interacted socially with fans"],
+        ["beh", "belonging", "6", "Felt a strong sense of belonging with fellow fans"],
+        ["beh", "friends", "7", "Made new friends while waiting"] ] },
+      { dim: "Emotional Buildup and Anticipation", items: [
+        ["emo", "excitement", "1", "This space increased my excitement for the concert"],
+        ["emo", "mood", "2", "This space helped build a “concert mood.”"],
+        ["emo", "community", "3", "I felt part of a shared fan community here"],
+        ["emo", "bored", "4", "I felt bored and impatient", true],
+        ["emo", "shift", "5", "I felt that my mood shifted to concert mode"] ] }
+    ].map(g => ({
+      dim: g.dim,
+      items: g.items.map(([prefix, key, label, text, neg]) =>
+        ({ label, text, neg: !!neg, field: s => `${prefix}_${s}_${key}` }))
+    }));
+
+    const PART4_CATEGORIES = PART4_GROUPS.map(g => g.dim);
+
+    const SECTION3_GROUPS = [
+      { dim: "3.1 Fan Satisfaction on the Threshold Spaces", interp: "agree", items: [
+        "I was satisfied with my experience in the threshold spaces overall.",
+        "I was satisfied with how organized and efficient the spaces were.",
+        "The threshold spaces positively shaped my anticipation before the concert began.",
+        "The design of the spaces made the waiting time more bearable and memorable." ].map((text, i) =>
+          ({ label: String(i + 1), text, field: () => `sat_q${i + 1}` })) },
+      { dim: "3.2 Fan Satisfaction on the Overall Concert Journey", interp: "rating", items: [
+        "Overall pre-event experience",
+        "Overall concert experience",
+        "Likelihood to attend another concert at this venue" ].map((text, i) =>
+          ({ label: String(i + 1), text, field: () => `journey_q${i + 1}` })) }
+    ];
+
+    // Part 3 options: [stored value, label from the guide]
+    const ACTIVITIES = [
+      ["Waiting", "Waiting"],
+      ["Queueing", "Queueing"],
+      ["Buying merchandise/food/drinks", "Buying merchandise/food/drinks"],
+      ["Meeting/bonding with friends", "Meeting or bonding with friends/fellow fans"],
+      ["Fan projects", "Participating in fan projects"],
+      ["Resting", "Resting (sitting, finding shade, pausing)"],
+      ["Taking photos/videos", "Taking photos/videos"],
+      ["Exploring", "Exploring"]
+    ];
+    const OTHER_ACTIVITY = "Others (specified)";
+    const DURATIONS = ["Less than 10 mins", "10-30 mins", "30-60 mins", "More than one hour"];
+
+    const OPEN_ENDED = [
+      ["feedback_enjoyed", "What did you find enjoyable or memorable while staying here?"],
+      ["feedback_challenges", "What challenges or difficulties did you experience in this space?"],
+      ["feedback_improvements", "What design improvements would make your experience better in this space?"]
+    ];
+
+    // ---------- Statistics ----------
+
+    function interpret(mean, kind = "agree") {
+      if (mean == null || isNaN(mean)) return "";
+      const labels = kind === "rating"
+        ? ["Very Poor", "Poor", "Fair", "Good", "Excellent"]
+        : ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"];
+      if (mean <= 1.80) return labels[0];
+      if (mean <= 2.60) return labels[1];
+      if (mean <= 3.40) return labels[2];
+      if (mean <= 4.20) return labels[3];
+      return labels[4];
+    }
+
+    function stats(values) {
+      const n = values.length;
+      if (!n) return { n: 0, mean: null, sd: null };
+      const mean = values.reduce((a, b) => a + b, 0) / n;
+      // Sample standard deviation (n - 1); blank when only one answer.
+      const sd = n > 1 ? Math.sqrt(values.reduce((a, v) => a + (v - mean) ** 2, 0) / (n - 1)) : null;
+      return { n, mean, sd };
+    }
+
+    function avg(arr) {
+      return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    }
+
+    function likert(r, key) {
+      const v = Number((r.responses || {})[key]);
+      return v >= 1 && v <= 5 ? v : null;
+    }
+
+    function fmt(v) { return v == null ? "–" : v.toFixed(2); }
+    function pct(f, n) { return n ? (f / n) * 100 : 0; }
+
+    // Item means + per-respondent category composites for a set of groups.
+    function computeScale(groups, respondents, spaceKey) {
+      const dims = groups.map(g => {
+        const items = g.items.map(it => {
+          const values = respondents.map(r => likert(r, it.field(spaceKey))).filter(v => v != null);
+          return { ...it, ...stats(values) };
+        });
+        return { dim: g.dim, interp: g.interp, items, scores: [] };
+      });
+
+      const overallScores = [];
+      respondents.forEach(r => {
+        const all = [];
+        dims.forEach((d, i) => {
+          const vals = groups[i].items.map(it => likert(r, it.field(spaceKey))).filter(v => v != null);
+          if (vals.length) { d.scores.push(avg(vals)); all.push(...vals); }
+        });
+        if (all.length) overallScores.push(avg(all));
+      });
+
+      dims.forEach(d => { d.summary = stats(d.scores); });
+      return { dims, overall: stats(overallScores), overallScores };
+    }
+
+    function computeActivities(space, respondents) {
+      const n = respondents.length;
+      const acts = ACTIVITIES.map(([value, label]) => {
+        const f = respondents.filter(r => ((r.responses || {})[`act_${space.key}`] || []).includes(value)).length;
+        return { label, f, pct: pct(f, n) };
+      });
+      const others = respondents
+        .map(r => String((r.responses || {})[`act_${space.key}_other`] || "").trim())
+        .filter(Boolean);
+      acts.push({ label: OTHER_ACTIVITY, f: others.length, pct: pct(others.length, n) });
+
+      let noAnswer = 0;
+      const durCounts = Object.fromEntries(DURATIONS.map(d => [d, 0]));
+      respondents.forEach(r => {
+        const d = (r.responses || {})[`duration_${space.key}`];
+        if (d in durCounts) durCounts[d]++; else noAnswer++;
+      });
+      const durations = DURATIONS.map(d => ({ label: d, f: durCounts[d], pct: pct(durCounts[d], n) }));
+      if (noAnswer) durations.push({ label: NO_RESPONSE, f: noAnswer, pct: pct(noAnswer, n) });
+
+      const openEnded = OPEN_ENDED.map(([prefix, question]) => ({
+        question,
+        answers: respondents
+          .map(r => String((r.responses || {})[`${prefix}_${space.key}`] || "").trim())
+          .filter(Boolean)
+      }));
+
+      return { acts, others, durations, openEnded };
+    }
+
+    let lastSpaces = [];   // per-space results (for export)
+    let lastSection3 = null;
+    let lastSummaries = {};
+
+    function computeAll(rows) {
+      lastSpaces = SPACES.map(space => {
+        const respondents = rows.filter(r =>
+          ((r.responses || {}).spaces_encountered || []).includes(space.key));
+        return {
+          space,
+          n: respondents.length,
+          part2: computeScale(part2Groups(space.set), respondents, space.key),
+          part4: computeScale(PART4_GROUPS, respondents, space.key),
+          part3: computeActivities(space, respondents)
+        };
+      });
+
+      lastSection3 = computeScale(SECTION3_GROUPS, rows, null);
+      const memorable = rows
+        .map(r => String((r.responses || {}).journey_most_memorable || "").trim())
+        .filter(Boolean);
+      lastSection3.memorable = memorable;
+      lastSection3.n = rows.length;
+    }
+
+    // ---------- Rendering helpers ----------
+
+    function interpPill(mean, kind) {
+      return mean != null ? `<span class="interp">${interpret(mean, kind)}</span>` : "";
+    }
+
+    function meanBar(mean) {
+      const w = mean ? ((mean - 1) / 4) * 100 : 0;
+      return `<div class="mean-bar" title="Mean ${fmt(mean)} of 5"><div style="width:${w}%"></div></div>`;
+    }
+
+    // Item table: groups with item rows, a mean row per group, optional overall row.
+    function itemTable(scale, { showOverall = true, dimMeanLabel = "dimension mean" } = {}) {
+      const body = scale.dims.map(d => {
+        const kind = d.interp || "agree";
+        const items = d.items.map(it => `
+          <tr>
+            <td class="text-slate-500 mono" style="width:44px">${escapeHtml(it.label)}</td>
+            <td>${escapeHtml(it.text)}${it.neg ? ' <span class="neg-tag" title="Negatively worded: higher = worse">(&minus;)</span>' : ""}</td>
+            <td class="num mono">${it.n}</td>
+            <td class="num mono font-semibold">${fmt(it.mean)}</td>
+            <td class="num mono text-slate-500">${fmt(it.sd)}</td>
+            <td>${meanBar(it.mean)}</td>
+            <td>${interpPill(it.mean, kind)}</td>
+          </tr>`).join("");
+        return `
+          <tr><td colspan="7" class="dim-row">${escapeHtml(d.dim)}</td></tr>
+          ${items}
+          <tr class="bg-slate-50">
+            <td></td>
+            <td class="font-semibold text-slate-700">${escapeHtml(d.dim)} &mdash; ${dimMeanLabel}</td>
+            <td class="num mono">${d.summary.n}</td>
+            <td class="num mono font-bold">${fmt(d.summary.mean)}</td>
+            <td class="num mono text-slate-500">${fmt(d.summary.sd)}</td>
+            <td></td>
+            <td>${interpPill(d.summary.mean, kind)}</td>
+          </tr>`;
+      }).join("");
+
+      const foot = showOverall ? `
+        <tfoot><tr>
+          <td></td><td>Overall mean (all items)</td>
+          <td class="num mono">${scale.overall.n}</td>
+          <td class="num mono">${fmt(scale.overall.mean)}</td>
+          <td class="num mono">${fmt(scale.overall.sd)}</td>
+          <td></td>
+          <td>${interpPill(scale.overall.mean)}</td>
+        </tr></tfoot>` : "";
+
+      return `
+        <div class="overflow-x-auto">
+          <table class="freq-table mean-table">
+            <thead><tr>
+              <th>#</th><th>Statement</th>
+              <th class="num" style="width:60px">n</th>
+              <th class="num" style="width:80px">Mean</th>
+              <th class="num" style="width:70px">SD</th>
+              <th style="width:16%">Mean (1&ndash;5)</th>
+              <th style="width:150px">Interpretation</th>
+            </tr></thead>
+            <tbody>${body}</tbody>${foot}
+          </table>
+        </div>`;
+    }
+
+    function freqTable(title, rows, n, note) {
+      const maxF = Math.max(0, ...rows.map(r => r.f));
+      return `
+        <div class="overflow-x-auto">
+          <table class="freq-table">
+            <thead><tr>
+              <th>${escapeHtml(title)}</th>
+              <th class="num" style="width:90px">f</th>
+              <th class="num" style="width:90px">%</th>
+              <th style="width:28%">Distribution</th>
+            </tr></thead>
+            <tbody>${rows.map(r => `
+              <tr class="${r.label === NO_RESPONSE ? "no-response" : ""}">
+                <td>${escapeHtml(r.label)}</td>
+                <td class="num mono">${r.f}</td>
+                <td class="num mono">${r.pct.toFixed(2)}%</td>
+                <td title="${escapeHtml(r.label)}: ${r.f} (${r.pct.toFixed(2)}%)">
+                  <div class="bar-track"><div class="bar-fill" style="width:${maxF ? (r.f / maxF) * 100 : 0}%"></div></div>
+                </td>
+              </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+        ${note ? `<p class="text-[11px] text-slate-400 px-4 pt-2">${note}</p>` : ""}`;
+    }
+
+    function answerList(title, answers) {
+      return `
+        <details class="answers border-t border-slate-100">
+          <summary class="px-4 py-2.5 text-sm hover:bg-slate-50 flex items-center gap-2">
+            <i class="chev ph ph-caret-right text-slate-400"></i>
+            <span class="flex-1">${escapeHtml(title)}</span>
+            <span class="text-xs text-slate-500 mono">${answers.length} answer(s)</span>
+          </summary>
+          ${answers.length
+            ? `<ol class="list-decimal pl-10 pr-4 pb-3 text-sm text-slate-700 space-y-1">${answers.map(a => `<li>${escapeHtml(a)}</li>`).join("")}</ol>`
+            : `<p class="px-4 pb-3 text-sm text-slate-400 italic">No answers.</p>`}
+        </details>`;
+    }
+
+    function subHeading(text) {
+      return `<div class="px-4 pt-4 pb-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-t border-slate-200">${text}</div>`;
+    }
+
+    // ---------- Per-space blocks ----------
+
+    function renderMeans(rows) {
+      const container = document.getElementById("meansContainer");
+
+      // Keep expanded blocks open when the filter changes.
+      const openKeys = new Set([...container.querySelectorAll("details[data-key][open]")].map(d => d.dataset.key));
+      const firstRender = !container.children.length;
+
+      computeAll(rows);
+
+      let html = "";
+      ["EXT", "INT"].forEach(set => {
+        html += `<div>
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 mb-2">
+            ${set === "EXT" ? "Set 1 &middot; Exterior Threshold Spaces" : "Set 2 &middot; Interior Threshold Spaces"}
+          </h3><div class="space-y-2">`;
+
+        lastSpaces.filter(s => s.space.set === set).forEach(s => {
+          const isOpen = firstRender ? false : openKeys.has(s.space.key);
+          const head = `
+            <summary class="px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 hover:bg-slate-50">
+              <i class="chev ph ph-caret-right text-slate-400"></i>
+              <span class="font-bold text-slate-900 flex-1 min-w-[200px]">${escapeHtml(s.space.label)}</span>
+              <span class="text-xs text-slate-500 mono">n = ${s.n}</span>
+              <span class="text-xs text-slate-600">Part 2 overall <b class="mono text-slate-900">${fmt(s.part2.overall.mean)}</b></span>
+              ${interpPill(s.part2.overall.mean)}
+            </summary>`;
+
+          let body;
+          if (!s.n) {
+            body = `<p class="px-4 pb-4 text-sm text-slate-400 italic">No completed respondents evaluated this space.</p>`;
+          } else {
+            body = `
+              ${subHeading(`Part 2 &middot; Physical Attributes (${s.space.set === "EXT" ? "Set 1, 21 items" : "Set A2, 20 items"})`)}
+              ${itemTable(s.part2)}
+
+              ${subHeading("Part 3.1 &middot; Activities done here (select all that apply)")}
+              ${freqTable("Activity", s.part3.acts, s.n, `% of the ${s.n} respondent(s) who evaluated this space. Multiple answers allowed, so percentages do not add up to 100%.`)}
+              ${s.part3.others.length ? answerList("Others (please specify)", s.part3.others) : ""}
+
+              ${subHeading("Part 3.2 &middot; Length of stay")}
+              ${freqTable("Length of stay", s.part3.durations, s.n)}
+
+              ${subHeading("Part 3.3 &middot; Open-ended answers")}
+              ${s.part3.openEnded.map(o => answerList(o.question, o.answers)).join("")}
+
+              ${subHeading("Part 4 &middot; Behavioral Outcomes &amp; Emotional Buildup")}
+              ${itemTable(s.part4, { showOverall: false, dimMeanLabel: "category mean" })}
+            `;
+          }
+
+          html += `
+            <details class="space-block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+                     data-key="${s.space.key}" ${isOpen ? "open" : ""}>
+              ${head}${body}
+            </details>`;
+        });
+        html += `</div></div>`;
+      });
+      container.innerHTML = html;
+
+      renderSummaries();
+      renderSection3();
+    }
+
+    // ---------- Summary matrices ----------
+
+    // Light-to-dark indigo tint, t in [0, 1]; text stays dark ink.
+    function tintT(t) {
+      const steps = ["#f5f7ff", "#eef2ff", "#e0e7ff", "#c7d2fe", "#a5b4fc"];
+      t = Math.max(0, Math.min(1, t));
+      return `background:${steps[Math.min(steps.length - 1, Math.floor(t * steps.length))]}`;
+    }
+    const tintMean = m => m == null ? "" : tintT((m - 1) / 4);
+
+    // rowsBySet: [{ title, rows: [{ label, n, values: [] , extra }], pooled }]
+    function matrix({ columns, sets, cell, extraHeader, nTitle = "n", note }) {
+      const colCount = columns.length + 2 + (extraHeader ? 1 : 0);
+      const body = sets.map(set => `
+        <tr class="set-row"><td colspan="${colCount}">${escapeHtml(set.title)}</td></tr>
+        ${[...set.rows, ...(set.pooled ? [{ ...set.pooled, pooled: true }] : [])].map(row => `
+          <tr class="${row.pooled ? "pooled" : ""}">
+            <td class="${row.pooled ? "" : "font-medium"}">${escapeHtml(row.label)}</td>
+            <td class="num mono ${row.pooled ? "" : "text-slate-500"}">${row.n}</td>
+            ${row.values.map((v, i) => cell(v, columns[i], row)).join("")}
+            ${extraHeader ? `<td>${row.extra || ""}</td>` : ""}
+          </tr>`).join("")}`).join("");
+
+      return `
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="freq-table dim-matrix">
+              <thead><tr>
+                <th style="min-width:210px">Threshold Space</th>
+                <th class="num" style="width:56px">${nTitle}</th>
+                ${columns.map(c => `<th style="text-align:center;min-width:110px">${escapeHtml(c)}</th>`).join("")}
+                ${extraHeader ? `<th style="width:150px">${extraHeader}</th>` : ""}
+              </tr></thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+          ${note ? `<p class="text-[11px] text-slate-400 px-4 py-2">${note}</p>` : ""}
+        </div>`;
+    }
+
+    const meanCell = (v, col) =>
+      `<td class="cell mono" style="${tintMean(v)}" title="${escapeHtml(col)}: ${fmt(v)}${v != null ? " (" + interpret(v) + ")" : ""}">${fmt(v)}</td>`;
+
+    function renderSummaries() {
+      lastSummaries = {};
+
+      // Summary 1: Part 2 dimensions + overall
+      const s1 = ["EXT", "INT"].map(set => {
+        const spaces = lastSpaces.filter(s => s.space.set === set);
+        const rows = spaces.map(s => ({
+          label: s.space.label, n: s.n,
+          values: [...s.part2.dims.map(d => d.summary.mean), s.part2.overall.mean],
+          extra: interpPill(s.part2.overall.mean)
+        }));
+        const pooledVals = [
+          ...DIMENSIONS.map((_, i) => avg(spaces.flatMap(s => s.part2.dims[i].scores))),
+          avg(spaces.flatMap(s => s.part2.overallScores))
+        ];
+        return {
+          title: `${SET_LABEL[set]} Threshold Spaces`, rows,
+          pooled: { label: `All ${SET_LABEL[set].toLowerCase()} spaces (pooled)`, n: spaces.reduce((a, s) => a + s.n, 0),
+                    values: pooledVals, extra: interpPill(pooledVals[pooledVals.length - 1]) }
+        };
+      });
+      lastSummaries.part2 = { columns: [...DIMENSIONS, "Overall"], sets: s1 };
+      document.getElementById("dimensionSummary").innerHTML = matrix({
+        columns: lastSummaries.part2.columns, sets: s1, cell: meanCell, extraHeader: "Interpretation (Overall)",
+        note: "Climatic Responsiveness has 5 items for exterior spaces and 4 for interior spaces. Pooled n = number of space evaluations."
+      });
+
+      // Summary 2: Part 4 categories (no overall: the categories mix positive and negative items)
+      const s2 = ["EXT", "INT"].map(set => {
+        const spaces = lastSpaces.filter(s => s.space.set === set);
+        return {
+          title: `${SET_LABEL[set]} Threshold Spaces`,
+          rows: spaces.map(s => ({ label: s.space.label, n: s.n, values: s.part4.dims.map(d => d.summary.mean) })),
+          pooled: { label: `All ${SET_LABEL[set].toLowerCase()} spaces (pooled)`, n: spaces.reduce((a, s) => a + s.n, 0),
+                    values: PART4_CATEGORIES.map((_, i) => avg(spaces.flatMap(s => s.part4.dims[i].scores))) }
+        };
+      });
+      lastSummaries.part4 = { columns: PART4_CATEGORIES, sets: s2 };
+      document.getElementById("part4Summary").innerHTML = matrix({
+        columns: PART4_CATEGORIES, sets: s2, cell: meanCell,
+        note: "Physical Comfort and Safety, Organization and Emotional Buildup include negatively worded items (stress, confusion, line-cutting, boredom), averaged as answered. Read these category means together with the item means in each space's Part 4 table."
+      });
+
+      // Summary 3: activities (% of respondents in the space)
+      const actCols = [...ACTIVITIES.map(a => a[1]), OTHER_ACTIVITY];
+      const pctCell = (v, col, row) => {
+        const f = v.f;
+        return `<td class="cell mono" style="${row.n ? tintT(v.pct / 100) : ""}" title="${escapeHtml(col)}: ${f} of ${row.n}">${row.n ? `${v.pct.toFixed(1)}%<span class="block text-[10px] text-slate-500">f = ${f}</span>` : "–"}</td>`;
+      };
+      const pooledFreq = (spaces, get, len) => {
+        const n = spaces.reduce((a, s) => a + s.n, 0);
+        return Array.from({ length: len }, (_, i) => {
+          const f = spaces.reduce((a, s) => a + (get(s)[i] ? get(s)[i].f : 0), 0);
+          return { f, pct: pct(f, n) };
+        });
+      };
+      const s3 = ["EXT", "INT"].map(set => {
+        const spaces = lastSpaces.filter(s => s.space.set === set);
+        return {
+          title: `${SET_LABEL[set]} Threshold Spaces`,
+          rows: spaces.map(s => ({ label: s.space.label, n: s.n, values: s.part3.acts })),
+          pooled: { label: `All ${SET_LABEL[set].toLowerCase()} spaces (pooled)`, n: spaces.reduce((a, s) => a + s.n, 0),
+                    values: pooledFreq(spaces, s => s.part3.acts, actCols.length) }
+        };
+      });
+      lastSummaries.activities = { columns: actCols, sets: s3 };
+      document.getElementById("activitySummary").innerHTML = matrix({
+        columns: actCols, sets: s3, cell: pctCell,
+        note: "Multiple answers allowed, so a row can add up to more than 100%."
+      });
+
+      // Summary 4: length of stay
+      const s4 = ["EXT", "INT"].map(set => {
+        const spaces = lastSpaces.filter(s => s.space.set === set);
+        const durVals = s => DURATIONS.map(d => s.part3.durations.find(x => x.label === d));
+        return {
+          title: `${SET_LABEL[set]} Threshold Spaces`,
+          rows: spaces.map(s => ({ label: s.space.label, n: s.n, values: durVals(s) })),
+          pooled: { label: `All ${SET_LABEL[set].toLowerCase()} spaces (pooled)`, n: spaces.reduce((a, s) => a + s.n, 0),
+                    values: pooledFreq(spaces, durVals, DURATIONS.length) }
+        };
+      });
+      lastSummaries.durations = { columns: DURATIONS, sets: s4 };
+      document.getElementById("durationSummary").innerHTML = matrix({
+        columns: DURATIONS, sets: s4, cell: pctCell,
+        note: "Percent of respondents who evaluated the space; each row adds up to 100% (minus any missing answers)."
+      });
+    }
+
+    // ---------- Section 3 ----------
+
+    function renderSection3() {
+      const s = lastSection3;
+      document.getElementById("section3").innerHTML = `
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 py-3 flex items-baseline justify-between">
+            <h3 class="font-bold text-slate-900">3.1 &amp; 3.2 Mean Scores</h3>
+            <span class="text-xs text-slate-500 mono">N = ${s.n}</span>
+          </div>
+          ${itemTable(s, { showOverall: false, dimMeanLabel: "mean" })}
+          <p class="text-[11px] text-slate-400 px-4 py-2">3.1 uses 1 = Strongly Disagree to 5 = Strongly Agree; 3.2 uses 1 = Very Poor to 5 = Excellent.</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          ${answerList("3.3 What was the most memorable or enjoyable part of the pre-event experience for you?", s.memorable)}
+        </div>`;
+    }
+
+    function toggleAllSpaces(open) {
+      document.querySelectorAll("#meansContainer details.space-block").forEach(d => { d.open = open; });
+    }
+
+    // One sheet with every table stacked, plus one sheet per variable.
+    function exportXLSX() {
+      if (!lastTables.length) { showToast("Nothing to export yet"); return; }
+
+      const tier = document.getElementById("tierFilter").value;
+      const wb = XLSX.utils.book_new();
+      const header = ["Category", "Frequency (f)", "Percent (%)", "Cumulative (%)"];
+      const round = x => Math.round(x * 100) / 100;
+
+      const summary = [
+        ["Threshold Spaces Arena Assessment - Part 1: Respondent Profile"],
+        ["Completed surveys only" + (tier === "all" ? "" : ` - Ticket class: ${tier}`)],
+        ["N", lastTables[0].n],
+        []
+      ];
+
+      lastTables.forEach((t, i) => {
+        const rows = t.rows.map(r => [r.category, r.f, round(r.pct), round(r.cumPct)]);
+        summary.push([`Table ${i + 1}. ${t.variable.title}`]);
+        summary.push(header);
+        rows.forEach(r => summary.push(r));
+        summary.push(["Total", t.n, 100]);
+        summary.push([]);
+
+        const ws = XLSX.utils.aoa_to_sheet([header, ...rows, ["Total", t.n, 100]]);
+        ws["!cols"] = [{ wch: 38 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
+        XLSX.utils.book_append_sheet(wb, ws, t.variable.title.replace(/\s*\/\s*/g, " - ").replace(/[\\?*\[\]:]/g, "").slice(0, 31));
+      });
+
+      const summaryWs = XLSX.utils.aoa_to_sheet(summary);
+      summaryWs["!cols"] = [{ wch: 38 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, summaryWs, "All Tables");
+      // Put "All Tables" first.
+      wb.SheetNames.unshift(wb.SheetNames.pop());
+
+      // ---------- Parts 2-4 & Section 3 sheets ----------
+      const r2 = x => x == null ? "" : Math.round(x * 100) / 100;
+      const filterNote = tier === "all" ? "All ticket classes" : `Ticket class: ${tier}`;
+      const addSheet = (name, aoa, cols) => {
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        if (cols) ws["!cols"] = cols.map(wch => ({ wch }));
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      };
+      const scaleRows = (scale, { overall = true, label = "mean" } = {}) => {
+        const out = [["#", "Statement", "n", "Mean", "SD", "Interpretation"]];
+        scale.dims.forEach(d => {
+          const kind = d.interp || "agree";
+          out.push(["", d.dim.toUpperCase()]);
+          d.items.forEach(it => out.push([it.label, it.text + (it.neg ? " (-)" : ""), it.n, r2(it.mean), r2(it.sd), interpret(it.mean, kind)]));
+          out.push(["", `${d.dim} - ${label}`, d.summary.n, r2(d.summary.mean), r2(d.summary.sd), interpret(d.summary.mean, kind)]);
+        });
+        if (overall) out.push(["", "Overall mean (all items)", scale.overall.n, r2(scale.overall.mean), r2(scale.overall.sd), interpret(scale.overall.mean)]);
+        return out;
+      };
+      const meanCols = [6, 70, 6, 8, 8, 18];
+
+      // Part 2 per space
+      const p2 = [["Part 2: Physical Attributes - Mean Scores per Threshold Space"], [filterNote], []];
+      lastSpaces.forEach(s => {
+        p2.push([`${s.space.label} (${SET_LABEL[s.space.set]})`, `n = ${s.n}`]);
+        p2.push(...scaleRows(s.part2, { label: "dimension mean" }), []);
+      });
+      addSheet("Part 2 per Space", p2, meanCols);
+
+      // Part 3 per space
+      const p3 = [["Part 3: Fan Activities per Threshold Space"], [filterNote, "% = of respondents who evaluated the space"], []];
+      lastSpaces.forEach(s => {
+        p3.push([`${s.space.label} (${SET_LABEL[s.space.set]})`, `n = ${s.n}`]);
+        p3.push(["3.1 Activity", "f", "%"]);
+        s.part3.acts.forEach(a => p3.push([a.label, a.f, r2(a.pct)]));
+        if (s.part3.others.length) p3.push(["Others specified:", s.part3.others.join("; ")]);
+        p3.push(["3.2 Length of stay", "f", "%"]);
+        s.part3.durations.forEach(d => p3.push([d.label, d.f, r2(d.pct)]));
+        p3.push([]);
+      });
+      addSheet("Part 3 per Space", p3, [44, 8, 8]);
+
+      // Part 4 per space
+      const p4 = [["Part 4: Behavioral Outcomes & Emotional Buildup - Mean Scores per Threshold Space"],
+                  [filterNote, "(-) = negatively worded item; means reported as answered"], []];
+      lastSpaces.forEach(s => {
+        p4.push([`${s.space.label} (${SET_LABEL[s.space.set]})`, `n = ${s.n}`]);
+        p4.push(...scaleRows(s.part4, { overall: false, label: "category mean" }), []);
+      });
+      addSheet("Part 4 per Space", p4, meanCols);
+
+      // Summary matrices
+      const matrixSheet = (name, summary, valueOf, extraCol) => {
+        const aoa = [["Threshold Space", "Set", "n", ...summary.columns, ...(extraCol ? [extraCol.title] : [])]];
+        summary.sets.forEach((set, i) => {
+          const setName = i === 0 ? "Exterior" : "Interior";
+          [...set.rows, set.pooled].forEach(row => aoa.push([
+            row.label, setName, row.n, ...row.values.map(valueOf), ...(extraCol ? [extraCol.value(row)] : [])
+          ]));
+        });
+        addSheet(name, aoa, [34, 9, 6, ...summary.columns.map(() => 16), 18]);
+      };
+      matrixSheet("Summary Part 2 Dimensions", lastSummaries.part2, r2,
+        { title: "Interpretation (Overall)", value: row => interpret(row.values[row.values.length - 1]) });
+      matrixSheet("Summary Part 4 Categories", lastSummaries.part4, r2);
+      matrixSheet("Summary Activities %", lastSummaries.activities, v => r2(v.pct));
+      matrixSheet("Summary Activities f", lastSummaries.activities, v => v.f);
+      matrixSheet("Summary Length of Stay %", lastSummaries.durations, v => r2(v.pct));
+      matrixSheet("Summary Length of Stay f", lastSummaries.durations, v => v.f);
+
+      // Section 3
+      const s3 = [["Section 3: Fan Satisfaction & Overall Concert Journey"], [filterNote, `N = ${lastSection3.n}`], []];
+      s3.push(...scaleRows(lastSection3, { overall: false }), []);
+      s3.push(["3.3 Most memorable or enjoyable part of the pre-event experience"]);
+      lastSection3.memorable.forEach((a, i) => s3.push([i + 1, a]));
+      addSheet("Section 3", s3, meanCols);
+
+      // Open-ended answers (Part 3.3 per space)
+      const oe = [["Threshold Space", "Set", "Question", "Answer"]];
+      lastSpaces.forEach(s => s.part3.openEnded.forEach(o => o.answers.forEach(a =>
+        oe.push([s.space.label, SET_LABEL[s.space.set], o.question, a]))));
+      addSheet("Part 3.3 Open-ended", oe, [30, 9, 60, 80]);
+
+      const fileName = `Threshold_Spaces_Full_Results_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      showToast(`Downloaded ${fileName}`);
+    }
+
+    window.addEventListener("DOMContentLoaded", fetchData);
+  </script>
+</body>
+</html>
